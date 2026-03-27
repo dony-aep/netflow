@@ -13,6 +13,8 @@ class AdvancedSettingsScreen extends StatefulWidget {
 
 class _AdvancedSettingsScreenState extends State<AdvancedSettingsScreen> {
   bool _hasLocationPermission = false;
+  bool _hasBackgroundLocationPermission = false;
+  bool _hasLocationServiceEnabled = false;
   bool _hasBatteryExemption = false;
   bool _isLoading = true;
 
@@ -24,11 +26,17 @@ class _AdvancedSettingsScreenState extends State<AdvancedSettingsScreen> {
 
   Future<void> _checkPermissions() async {
     final locationStatus = await PermissionService.hasLocationPermission();
+    final backgroundLocationStatus =
+        await PermissionService.hasBackgroundLocationPermission();
+    final locationServiceStatus =
+        await PermissionService.hasLocationServiceEnabled();
     final batteryStatus = await PermissionService.hasBatteryOptimizationExemption();
     
     if (mounted) {
       setState(() {
         _hasLocationPermission = locationStatus;
+        _hasBackgroundLocationPermission = backgroundLocationStatus;
+        _hasLocationServiceEnabled = locationServiceStatus;
         _hasBatteryExemption = batteryStatus;
         _isLoading = false;
       });
@@ -37,11 +45,21 @@ class _AdvancedSettingsScreenState extends State<AdvancedSettingsScreen> {
 
   Future<void> _requestLocationPermission() async {
     final granted = await PermissionService.requestLocationPermission();
+    await _checkPermissions();
+
     if (mounted) {
-      setState(() => _hasLocationPermission = granted);
-      
       if (granted) {
-        _showSnackBar('Permiso de ubicación concedido');
+        if (!_hasBackgroundLocationPermission) {
+          _showSnackBar(
+            'Ubicacion concedida. Para SSID estable en segundo plano, habilita "Permitir todo el tiempo" en Ajustes.',
+          );
+        } else if (!_hasLocationServiceEnabled) {
+          _showSnackBar(
+            'Permiso concedido. Activa la ubicacion del sistema para que se muestre el SSID.',
+          );
+        } else {
+          _showSnackBar('Permisos de ubicacion actualizados correctamente');
+        }
       } else {
         _showSnackBar('Permiso denegado. Puedes habilitarlo en ajustes del sistema.');
       }
@@ -116,10 +134,17 @@ class _AdvancedSettingsScreenState extends State<AdvancedSettingsScreen> {
                   icon: Icons.wifi_rounded,
                   title: 'Mostrar nombre de WiFi',
                   description:
-                      'Permite ver el nombre (SSID) de la red WiFi conectada en la notificación.',
-                  permissionInfo: 'Requiere permiso de ubicación',
-                  isGranted: _hasLocationPermission,
-                  onTap: _hasLocationPermission ? null : _requestLocationPermission,
+                    'Permite ver el nombre (SSID) de la red WiFi conectada en la notificacion. Para segundo plano, se recomienda permitir ubicacion todo el tiempo y mantener la ubicacion del sistema activa.',
+                  permissionInfo:
+                    'Requiere ubicacion + acceso en segundo plano',
+                  isGranted: _hasLocationPermission &&
+                    _hasBackgroundLocationPermission &&
+                    _hasLocationServiceEnabled,
+                  onTap: (_hasLocationPermission &&
+                      _hasBackgroundLocationPermission &&
+                      _hasLocationServiceEnabled)
+                    ? null
+                    : _requestLocationPermission,
                   theme: theme,
                   colorScheme: colorScheme,
                 ),

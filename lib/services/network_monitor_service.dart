@@ -410,8 +410,19 @@ class NetworkMonitorTaskHandler extends TaskHandler {
 
   Future<String?> _getWifiSsid() async {
     try {
-      final hasPermission = await Permission.location.isGranted;
-      if (!hasPermission) return null;
+      final hasLocationPermission =
+          await Permission.locationWhenInUse.isGranted ||
+          await Permission.location.isGranted;
+      if (!hasLocationPermission) {
+        return _cachedWifiSsid;
+      }
+
+      final locationServiceStatus =
+          await Permission.locationWhenInUse.serviceStatus;
+      if (locationServiceStatus != ServiceStatus.enabled) {
+        debugPrint('NetFlow: Ubicación del sistema desactivada, usando SSID en cache');
+        return _cachedWifiSsid;
+      }
 
       if (_cachedWifiSsid != null && _lastSsidUpdate != null) {
         final elapsed = DateTime.now().difference(_lastSsidUpdate!);
@@ -421,21 +432,37 @@ class NetworkMonitorTaskHandler extends TaskHandler {
       }
 
       final networkInfo = NetworkInfo();
-      String? ssid = await networkInfo.getWifiName();
+      final ssid = _sanitizeSsid(await networkInfo.getWifiName());
 
       if (ssid != null) {
-        ssid = ssid.replaceAll('"', '').replaceAll('<unknown ssid>', '');
-        if (ssid.isEmpty) ssid = null;
+        _cachedWifiSsid = ssid;
+        _lastSsidUpdate = DateTime.now();
+        return ssid;
       }
 
-      _cachedWifiSsid = ssid;
-      _lastSsidUpdate = DateTime.now();
+      // Algunos dispositivos devuelven temporalmente "unknown ssid" en background.
+      // Conservamos el último valor válido mientras siga en WiFi.
+      if (_cachedWifiSsid != null) {
+        return _cachedWifiSsid;
+      }
 
-      return ssid;
+      _lastSsidUpdate = DateTime.now();
+      return null;
     } catch (e) {
       debugPrint('NetFlow: Error obteniendo SSID en background: $e');
+      return _cachedWifiSsid;
+    }
+  }
+
+  String? _sanitizeSsid(String? ssid) {
+    if (ssid == null) return null;
+
+    final cleaned = ssid.replaceAll('"', '').trim();
+    if (cleaned.isEmpty || cleaned.toLowerCase() == '<unknown ssid>') {
       return null;
     }
+
+    return cleaned;
   }
 
   NetworkType _getNetworkType(List<ConnectivityResult> results) {

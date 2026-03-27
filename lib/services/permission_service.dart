@@ -202,13 +202,37 @@ class PermissionService {
 
   /// Solicita permiso de ubicación (necesario para obtener SSID de WiFi)
   static Future<bool> requestLocationPermission() async {
-    final status = await Permission.location.request();
-    return status.isGranted;
+    final status = await Permission.locationWhenInUse.request();
+    if (!status.isGranted && !status.isLimited) {
+      return false;
+    }
+
+    // Intentar habilitar acceso en segundo plano para mantener SSID en background.
+    final alwaysStatus = await Permission.locationAlways.status;
+    if (!alwaysStatus.isGranted) {
+      await Permission.locationAlways.request();
+    }
+
+    return true;
   }
 
   /// Verifica si el permiso de ubicación está otorgado
   static Future<bool> hasLocationPermission() async {
+    final whenInUseGranted = await Permission.locationWhenInUse.isGranted;
+    if (whenInUseGranted) return true;
+
     return await Permission.location.isGranted;
+  }
+
+  /// Verifica si la app tiene permiso de ubicación en segundo plano
+  static Future<bool> hasBackgroundLocationPermission() async {
+    return await Permission.locationAlways.isGranted;
+  }
+
+  /// Verifica si la ubicación del sistema está activada (GPS/ubicación)
+  static Future<bool> hasLocationServiceEnabled() async {
+    final status = await Permission.locationWhenInUse.serviceStatus;
+    return status == ServiceStatus.enabled;
   }
 
   /// Solicita exención de optimización de batería
