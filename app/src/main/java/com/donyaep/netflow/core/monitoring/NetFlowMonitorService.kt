@@ -127,6 +127,21 @@ class NetFlowMonitorService : Service() {
         )
 
         monitoringJob = serviceScope.launch {
+            val todayUsage = dailyUsageRepository.getTodayUsage()
+            todayDownloadBytes = todayUsage.totalReceivedBytes
+            todayUploadBytes = todayUsage.totalSentBytes
+            todayWifiTotalBytes = todayUsage.wifiTotalBytes
+            todayMobileTotalBytes = todayUsage.mobileTotalBytes
+            MonitoringStateStore.update {
+                it.copy(
+                    todayDownloadBytes = todayDownloadBytes,
+                    todayUploadBytes = todayUploadBytes,
+                    todayWifiTotalBytes = todayWifiTotalBytes,
+                    todayMobileTotalBytes = todayMobileTotalBytes,
+                )
+            }
+            updateNotification()
+
             while (isActive) {
                 val snapshot = trafficStatsRepository.readSnapshot()
                 publishMonitoringState(snapshot)
@@ -252,10 +267,13 @@ class NetFlowMonitorService : Service() {
 
     private fun readWifiInfoSsid(): String? {
         val capabilities = connectivityManager.getNetworkCapabilities(connectivityManager.activeNetwork)
-        val transportInfo = capabilities?.transportInfo
-        val wifiInfo = transportInfo as? WifiInfo
-        if (wifiInfo != null) {
-            return wifiInfo.ssid
+        val wifiInfo = (capabilities?.transportInfo) as? WifiInfo
+        val primarySsid = wifiInfo?.ssid
+        if (primarySsid != null) {
+            val cleaned = primarySsid.replace("\"", "").trim()
+            if (cleaned.isNotBlank() && !cleaned.equals("<unknown ssid>", ignoreCase = true)) {
+                return primarySsid
+            }
         }
 
         @Suppress("DEPRECATION")

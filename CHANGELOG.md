@@ -11,6 +11,13 @@ y este proyecto sigue [Semantic Versioning].
 
 - Sin cambios por ahora.
 
+## [2.0.1] - 2026-05-04
+
+### Corregido
+
+- Lectura de SSID en la notificacion: cuando la API moderna (`NetworkCapabilities.transportInfo`) devuelve `<unknown ssid>`, ahora se usa el fallback deprecated (`WifiManager.connectionInfo`) que en muchos dispositivos retorna el nombre real de la red.
+- Restauracion de contadores diarios al reiniciar el monitoreo: al detener e iniciar nuevamente el servicio, los acumuladores de WiFi y datos moviles se cargan desde la base de datos en lugar de empezar desde cero.
+
 ## [2.0.0] - 2026-05-03
 
 ### Anadido
@@ -113,7 +120,8 @@ y este proyecto sigue [Semantic Versioning].
 
 [Keep a Changelog]: https://keepachangelog.com/en/1.1.0/
 [Semantic Versioning]: https://semver.org/spec/v2.0.0.html
-[Unreleased]: https://github.com/dony-aep/netflow/compare/2.0.0...HEAD
+[Unreleased]: https://github.com/dony-aep/netflow/compare/2.0.1...HEAD
+[2.0.1]: https://github.com/dony-aep/netflow/compare/2.0.0...2.0.1
 [2.0.0]: https://github.com/dony-aep/netflow/compare/1.0.1...2.0.0
 [1.0.1]: https://github.com/dony-aep/netflow/compare/1.0.0...1.0.1
 [1.0.0]: https://github.com/dony-aep/netflow/commits/1.0.0
