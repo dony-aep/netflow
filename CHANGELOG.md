@@ -11,6 +11,12 @@ y este proyecto sigue [Semantic Versioning].
 
 - Sin cambios por ahora.
 
+## [2.0.2] - 2026-05-07
+
+### Corregido
+
+- Reinicio de contadores diarios en la notificacion al cambiar de dia: los acumuladores en memoria de WiFi y datos moviles no se reiniciaban a medianoche, mostrando el consumo del dia anterior. Se agrego deteccion de cambio de fecha en el loop de polling que recarga los contadores desde la base de datos.
+
 ## [2.0.1] - 2026-05-04
 
 ### Corregido
@@ -120,7 +126,8 @@ y este proyecto sigue [Semantic Versioning].
 
 [Keep a Changelog]: https://keepachangelog.com/en/1.1.0/
 [Semantic Versioning]: https://semver.org/spec/v2.0.0.html
-[Unreleased]: https://github.com/dony-aep/netflow/compare/2.0.1...HEAD
+[Unreleased]: https://github.com/dony-aep/netflow/compare/2.0.2...HEAD
+[2.0.2]: https://github.com/dony-aep/netflow/compare/2.0.1...2.0.2
 [2.0.1]: https://github.com/dony-aep/netflow/compare/2.0.0...2.0.1
 [2.0.0]: https://github.com/dony-aep/netflow/compare/1.0.1...2.0.0
 [1.0.1]: https://github.com/dony-aep/netflow/compare/1.0.0...1.0.1

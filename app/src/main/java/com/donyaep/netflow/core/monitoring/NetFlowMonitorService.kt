@@ -61,6 +61,7 @@ class NetFlowMonitorService : Service() {
     private var todayWifiTotalBytes: Long = 0L
     private var todayMobileTotalBytes: Long = 0L
     private val sharedPrefs by lazy { getSharedPreferences("netflow_prefs", Context.MODE_PRIVATE) }
+    private var lastDate: String = LocalDate.now().format(DateTimeFormatter.ISO_LOCAL_DATE)
     private var dataLimitAlertCycleKey: String = ""
     private var lastKnownLimitBytes: Long = -1L
 
@@ -166,6 +167,31 @@ class NetFlowMonitorService : Service() {
         val networkType = currentNetworkType()
         val previousSnapshot = lastSnapshot
         val networkChanged = networkType != lastNetworkType
+
+        val currentDate = LocalDate.now().format(DateTimeFormatter.ISO_LOCAL_DATE)
+        if (currentDate != lastDate) {
+            lastDate = currentDate
+            val newDayUsage = dailyUsageRepository.getTodayUsage()
+            todayDownloadBytes = newDayUsage.totalReceivedBytes
+            todayUploadBytes = newDayUsage.totalSentBytes
+            todayWifiTotalBytes = newDayUsage.wifiTotalBytes
+            todayMobileTotalBytes = newDayUsage.mobileTotalBytes
+            lastSnapshot = snapshot
+            lastSampleElapsedRealtime = nowElapsedRealtime
+            downloadSpeedBuffer.clear()
+            uploadSpeedBuffer.clear()
+            MonitoringStateStore.update {
+                it.copy(
+                    todayDownloadBytes = todayDownloadBytes,
+                    todayUploadBytes = todayUploadBytes,
+                    todayWifiTotalBytes = todayWifiTotalBytes,
+                    todayMobileTotalBytes = todayMobileTotalBytes,
+                    downloadSpeedBytesPerSecond = 0,
+                    uploadSpeedBytesPerSecond = 0,
+                )
+            }
+            return
+        }
         val wifiSsid = currentWifiSsid(networkType)
         var wifiRxDelta = 0L
         var wifiTxDelta = 0L
@@ -304,6 +330,7 @@ class NetFlowMonitorService : Service() {
         todayUploadBytes = 0L
         todayWifiTotalBytes = 0L
         todayMobileTotalBytes = 0L
+        lastDate = LocalDate.now().format(DateTimeFormatter.ISO_LOCAL_DATE)
     }
 
     private fun resetTodayStats() {
