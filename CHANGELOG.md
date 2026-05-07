@@ -11,6 +11,13 @@ y este proyecto sigue [Semantic Versioning].
 
 - Sin cambios por ahora.
 
+## [2.0.3] - 2026-05-07
+
+### Cambiado
+
+- Boton de descarga de actualizacion ahora redirige a la pagina de la ultima release en GitHub en lugar de intentar la descarga directa del APK, evitando que Chrome bloquee o no complete la descarga.
+- Texto informativo actualizado para reflejar el nuevo flujo de descarga.
+
 ## [2.0.2] - 2026-05-07
 
 ### Corregido
@@ -126,7 +133,8 @@ y este proyecto sigue [Semantic Versioning].
 
 [Keep a Changelog]: https://keepachangelog.com/en/1.1.0/
 [Semantic Versioning]: https://semver.org/spec/v2.0.0.html
-[Unreleased]: https://github.com/dony-aep/netflow/compare/2.0.2...HEAD
+[Unreleased]: https://github.com/dony-aep/netflow/compare/2.0.3...HEAD
+[2.0.3]: https://github.com/dony-aep/netflow/compare/2.0.2...2.0.3
 [2.0.2]: https://github.com/dony-aep/netflow/compare/2.0.1...2.0.2
 [2.0.1]: https://github.com/dony-aep/netflow/compare/2.0.0...2.0.1
 [2.0.0]: https://github.com/dony-aep/netflow/compare/1.0.1...2.0.0

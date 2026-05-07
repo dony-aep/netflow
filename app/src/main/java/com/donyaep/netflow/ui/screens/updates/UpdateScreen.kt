@@ -249,10 +249,7 @@ fun UpdateScreen(
                 if (updateAvailable) {
                     Button(
                         onClick = {
-                            val url = state.releaseInfo?.apkDownloadUrl
-                                ?: state.releaseInfo?.htmlUrl
-                                ?: GitHubUpdateService.RELEASES_URL
-                            openExternalUrl(context, url)
+                            openExternalUrl(context, GitHubUpdateService.RELEASES_URL)
                         },
                         modifier = Modifier.fillMaxWidth(),
                         contentPadding = ButtonDefaults.ButtonWithIconContentPadding,
@@ -282,7 +279,7 @@ fun UpdateScreen(
                     modifier = Modifier.fillMaxWidth(),
                 ) {
                     Text(
-                        "Las actualizaciones se descargan directamente desde GitHub Releases. Al pulsar el botón de descarga, el navegador abrirá el archivo APK de la nueva versión.",
+                        "Las actualizaciones se publican en GitHub Releases. Al pulsar el botón de descarga, el navegador abrirá la página de la última versión disponible donde podrás descargar el APK.",
                         style = MaterialTheme.typography.bodySmall,
                         color = cs.onSurfaceVariant,
                         modifier = Modifier.padding(16.dp),
