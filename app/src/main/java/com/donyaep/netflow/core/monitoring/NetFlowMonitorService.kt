@@ -202,14 +202,24 @@ class NetFlowMonitorService : Service() {
         var averagedUploadSpeed = 0L
 
         if (previousSnapshot != null && elapsedMs > 100L) {
-            // Siempre contar bytes — independientemente del estado de red
-            wifiRxDelta = (snapshot.wifiRxBytes - previousSnapshot.wifiRxBytes).coerceAtLeast(0L)
-            wifiTxDelta = (snapshot.wifiTxBytes - previousSnapshot.wifiTxBytes).coerceAtLeast(0L)
-            mobileRxDelta = (snapshot.mobileRxBytes - previousSnapshot.mobileRxBytes).coerceAtLeast(0L)
-            mobileTxDelta = (snapshot.mobileTxBytes - previousSnapshot.mobileTxBytes).coerceAtLeast(0L)
+            val totalRxDelta = (snapshot.totalRxBytes - previousSnapshot.totalRxBytes).coerceAtLeast(0L)
+            val totalTxDelta = (snapshot.totalTxBytes - previousSnapshot.totalTxBytes).coerceAtLeast(0L)
 
-            todayDownloadBytes += wifiRxDelta + mobileRxDelta
-            todayUploadBytes += wifiTxDelta + mobileTxDelta
+            // Atribuir deltas según la red activa actual
+            when (networkType) {
+                NetworkType.Wifi -> {
+                    wifiRxDelta = totalRxDelta
+                    wifiTxDelta = totalTxDelta
+                }
+                NetworkType.Mobile -> {
+                    mobileRxDelta = totalRxDelta
+                    mobileTxDelta = totalTxDelta
+                }
+                NetworkType.None -> { /* sin conexión, no atribuir */ }
+            }
+
+            todayDownloadBytes += totalRxDelta
+            todayUploadBytes += totalTxDelta
             todayWifiTotalBytes += wifiRxDelta + wifiTxDelta
             todayMobileTotalBytes += mobileRxDelta + mobileTxDelta
 
@@ -223,10 +233,8 @@ class NetFlowMonitorService : Service() {
 
             // Velocidad solo cuando la red es estable (sin cambio y con conexión activa)
             if (!networkChanged && networkType != NetworkType.None) {
-                val rxDelta = (snapshot.totalRxBytes - previousSnapshot.totalRxBytes).coerceAtLeast(0L)
-                val txDelta = (snapshot.totalTxBytes - previousSnapshot.totalTxBytes).coerceAtLeast(0L)
-                val rawDownloadSpeed = (rxDelta * 1000L) / elapsedMs
-                val rawUploadSpeed = (txDelta * 1000L) / elapsedMs
+                val rawDownloadSpeed = (totalRxDelta * 1000L) / elapsedMs
+                val rawUploadSpeed = (totalTxDelta * 1000L) / elapsedMs
 
                 pushBufferedSample(downloadSpeedBuffer, rawDownloadSpeed)
                 pushBufferedSample(uploadSpeedBuffer, rawUploadSpeed)
@@ -372,7 +380,7 @@ class NetFlowMonitorService : Service() {
         val cycleKey = cycleStart.format(DateTimeFormatter.ISO_LOCAL_DATE)
         if (cycleKey == dataLimitAlertCycleKey) return
         val todayStr = LocalDate.now().format(DateTimeFormatter.ISO_LOCAL_DATE)
-        val cycleTotalBytes = dailyUsageRepository.getTotalBytesBetween(cycleKey, todayStr)
+        val cycleTotalBytes = dailyUsageRepository.getMobileBytesBetween(cycleKey, todayStr)
         if (cycleTotalBytes < limitBytes) return
         dataLimitAlertCycleKey = cycleKey
         sharedPrefs.edit().putString("dataLimitNotifiedCycle", cycleKey).apply()

@@ -9,16 +9,12 @@ class TrafficStatsLocalDataSource {
         val totalTx = TrafficStats.getTotalTxBytes().coerceAtLeast(0L)
         val mobileRx = TrafficStats.getMobileRxBytes().coerceAtLeast(0L)
         val mobileTx = TrafficStats.getMobileTxBytes().coerceAtLeast(0L)
-        val wifiRx = (totalRx - mobileRx).coerceAtLeast(0L)
-        val wifiTx = (totalTx - mobileTx).coerceAtLeast(0L)
 
         return TrafficSnapshot(
             totalRxBytes = totalRx,
             totalTxBytes = totalTx,
             mobileRxBytes = mobileRx,
             mobileTxBytes = mobileTx,
-            wifiRxBytes = wifiRx,
-            wifiTxBytes = wifiTx,
         )
     }
 }

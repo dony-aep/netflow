@@ -22,6 +22,7 @@ interface DailyUsageRepository {
 
     suspend fun resetTodayUsage()
     suspend fun getTotalBytesBetween(startDate: String, endDate: String): Long
+    suspend fun getMobileBytesBetween(startDate: String, endDate: String): Long
 }
 
 class DefaultDailyUsageRepository(
@@ -69,6 +70,9 @@ class DefaultDailyUsageRepository(
 
     override suspend fun getTotalBytesBetween(startDate: String, endDate: String): Long =
         dailyUsageDao.sumTotalBytesBetween(startDate, endDate)
+
+    override suspend fun getMobileBytesBetween(startDate: String, endDate: String): Long =
+        dailyUsageDao.sumMobileBytesBetween(startDate, endDate)
 
     private fun todayDate(): String = LocalDate.now().format(DateTimeFormatter.ISO_LOCAL_DATE)
 }

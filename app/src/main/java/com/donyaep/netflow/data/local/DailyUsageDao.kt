@@ -60,6 +60,13 @@ interface DailyUsageDao {
     """)
     suspend fun sumTotalBytesBetween(startDate: String, endDate: String): Long
 
+    @Query("""
+        SELECT COALESCE(SUM(mobileReceived + mobileSent), 0)
+        FROM daily_usage
+        WHERE date >= :startDate AND date <= :endDate
+    """)
+    suspend fun sumMobileBytesBetween(startDate: String, endDate: String): Long
+
     @Query("DELETE FROM daily_usage WHERE date = :date")
     suspend fun deleteByDate(date: String)
 }

@@ -5,11 +5,12 @@ Todos los cambios relevantes de este proyecto se documentaran en este archivo.
 El formato esta basado en [Keep a Changelog],
 y este proyecto sigue [Semantic Versioning].
 
-## [Unreleased]
+## [2.0.4] - 2026-05-23
 
-### Cambiado
+### Corregido
 
-- Sin cambios por ahora.
+- Calculo incorrecto de consumo WiFi y datos moviles: se eliminó la derivacion de bytes WiFi por sustraccion (`total - mobile`) que causaba valores inflados y duplicacion al cambiar de red. Ahora cada delta de bytes se atribuye exclusivamente a la red activa en el momento del muestreo.
+- Alerta de limite de datos ahora cuenta solo bytes de red movil en lugar de sumar WiFi + Mobile, reflejando correctamente el consumo del plan de datos celular.
 
 ## [2.0.3] - 2026-05-07
 
@@ -133,7 +134,7 @@ y este proyecto sigue [Semantic Versioning].
 
 [Keep a Changelog]: https://keepachangelog.com/en/1.1.0/
 [Semantic Versioning]: https://semver.org/spec/v2.0.0.html
-[Unreleased]: https://github.com/dony-aep/netflow/compare/2.0.3...HEAD
+[2.0.4]: https://github.com/dony-aep/netflow/compare/2.0.3...2.0.4
 [2.0.3]: https://github.com/dony-aep/netflow/compare/2.0.2...2.0.3
 [2.0.2]: https://github.com/dony-aep/netflow/compare/2.0.1...2.0.2
 [2.0.1]: https://github.com/dony-aep/netflow/compare/2.0.0...2.0.1

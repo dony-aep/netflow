@@ -5,6 +5,4 @@ data class TrafficSnapshot(
     val totalTxBytes: Long,
     val mobileRxBytes: Long,
     val mobileTxBytes: Long,
-    val wifiRxBytes: Long,
-    val wifiTxBytes: Long,
 )
