@@ -9,6 +9,7 @@ import android.app.Service
 import android.content.pm.PackageManager
 import android.content.Context
 import android.content.Intent
+import android.os.Build
 import android.os.IBinder
 import android.os.SystemClock
 import androidx.core.content.ContextCompat
@@ -300,13 +301,16 @@ class NetFlowMonitorService : Service() {
     }
 
     private fun readWifiInfoSsid(): String? {
-        val capabilities = connectivityManager.getNetworkCapabilities(connectivityManager.activeNetwork)
-        val wifiInfo = (capabilities?.transportInfo) as? WifiInfo
-        val primarySsid = wifiInfo?.ssid
-        if (primarySsid != null) {
-            val cleaned = primarySsid.replace("\"", "").trim()
-            if (cleaned.isNotBlank() && !cleaned.equals("<unknown ssid>", ignoreCase = true)) {
-                return primarySsid
+        // transportInfo no existe antes de Android 10; ahí solo queda el fallback de abajo.
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            val capabilities = connectivityManager.getNetworkCapabilities(connectivityManager.activeNetwork)
+            val wifiInfo = (capabilities?.transportInfo) as? WifiInfo
+            val primarySsid = wifiInfo?.ssid
+            if (primarySsid != null) {
+                val cleaned = primarySsid.replace("\"", "").trim()
+                if (cleaned.isNotBlank() && !cleaned.equals("<unknown ssid>", ignoreCase = true)) {
+                    return primarySsid
+                }
             }
         }
 
