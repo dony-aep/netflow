@@ -16,7 +16,7 @@ if (keystorePropertiesFile.exists()) {
 android {
     namespace = "com.donyaep.netflow"
     compileSdk {
-        version = release(36) {
+        version = release(37) {
             minorApiLevel = 1
         }
     }
@@ -70,12 +70,12 @@ ksp {
 }
 
 dependencies {
-    implementation(platform(libs.androidx.compose.bom))
+    implementation(platform(libs.androidx.compose.bom.alpha))
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.compose.animation)
     implementation(libs.androidx.compose.foundation)
     implementation(libs.androidx.compose.material.icons.extended)
-    implementation(libs.androidx.compose.material3.expressive)
+    implementation(libs.androidx.compose.material3)
     implementation(libs.androidx.compose.ui)
     implementation(libs.androidx.compose.ui.graphics)
     implementation(libs.androidx.compose.ui.tooling.preview)
@@ -90,7 +90,7 @@ dependencies {
     implementation(libs.kotlinx.coroutines.android)
     ksp(libs.androidx.room.compiler)
     testImplementation(libs.junit)
-    androidTestImplementation(platform(libs.androidx.compose.bom))
+    androidTestImplementation(platform(libs.androidx.compose.bom.alpha))
     androidTestImplementation(libs.androidx.compose.ui.test.junit4)
     androidTestImplementation(libs.androidx.espresso.core)
     androidTestImplementation(libs.androidx.junit)
