@@ -3,7 +3,6 @@ package com.donyaep.netflow.ui
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
-import androidx.compose.material.icons.rounded.History
 import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.Icon
@@ -12,10 +11,13 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.navigation.compose.currentBackStackEntryAsState
 import androidx.navigation.compose.rememberNavController
+import com.donyaep.netflow.R
 import com.donyaep.netflow.ui.navigation.AppDestination
 import com.donyaep.netflow.ui.navigation.AppNavHost
 
@@ -73,7 +75,7 @@ fun NetFlowApp() {
                                     }
                                 },
                             ) {
-                                Icon(Icons.Rounded.History, contentDescription = "Historial")
+                                Icon(ImageVector.vectorResource(R.drawable.ic_history), contentDescription = "Historial")
                             }
                             IconButton(
                                 onClick = {

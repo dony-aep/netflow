@@ -22,17 +22,8 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.automirrored.rounded.ArrowForward
-import androidx.compose.material.icons.rounded.ArrowDownward
-import androidx.compose.material.icons.rounded.ArrowUpward
-import androidx.compose.material.icons.rounded.BarChart
-import androidx.compose.material.icons.rounded.CalendarViewMonth
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.DateRange
-import androidx.compose.material.icons.rounded.FilterList
-import androidx.compose.material.icons.rounded.NetworkCell
-import androidx.compose.material.icons.rounded.Restore
-import androidx.compose.material.icons.rounded.Schedule
-import androidx.compose.material.icons.rounded.Wifi
 import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -57,8 +48,10 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.FontWeight
+import com.donyaep.netflow.R
 import com.donyaep.netflow.ui.theme.AppCodeFontFamily
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -119,7 +112,7 @@ fun HistoryScreen(
                 },
                 actions = {
                     IconButton(onClick = { showFilterSheet = true }) {
-                        Icon(Icons.Rounded.FilterList, contentDescription = "Filtrar", tint = cs.primary)
+                        Icon(ImageVector.vectorResource(R.drawable.ic_filter_list), contentDescription = "Filtrar", tint = cs.primary)
                     }
                 },
                 windowInsets = WindowInsets(0),
@@ -221,8 +214,8 @@ private fun HistorySummaryCard(uiState: HistoryUiState) {
                 horizontalAlignment = Alignment.End,
                 verticalArrangement = Arrangement.spacedBy(8.dp),
             ) {
-                SummaryNetRow(Icons.Rounded.Wifi,        "WiFi",  uiState.summary.wifiLabel,   cs.secondary)
-                SummaryNetRow(Icons.Rounded.NetworkCell, "Móvil", uiState.summary.mobileLabel, cs.tertiary)
+                SummaryNetRow(ImageVector.vectorResource(R.drawable.ic_wifi),        "WiFi",  uiState.summary.wifiLabel,   cs.secondary)
+                SummaryNetRow(ImageVector.vectorResource(R.drawable.ic_network_cell), "Móvil", uiState.summary.mobileLabel, cs.tertiary)
             }
         }
     }
@@ -437,7 +430,7 @@ private fun HistoryEmptyState() {
             horizontalAlignment = Alignment.CenterHorizontally,
             verticalArrangement = Arrangement.spacedBy(8.dp),
         ) {
-            Icon(Icons.Rounded.BarChart, contentDescription = null, tint = cs.onSurfaceVariant, modifier = Modifier.size(32.dp))
+            Icon(ImageVector.vectorResource(R.drawable.ic_bar_chart), contentDescription = null, tint = cs.onSurfaceVariant, modifier = Modifier.size(32.dp))
             Text("Sin datos para este rango", style = MaterialTheme.typography.bodyLarge, color = cs.onSurfaceVariant)
         }
     }
@@ -466,7 +459,7 @@ private fun HistoryFilterSheet(
                     enabled = current != HistoryFilter.ByMonth,
                 ) {
                     Icon(
-                        Icons.Rounded.Restore,
+                        ImageVector.vectorResource(R.drawable.ic_restore),
                         contentDescription = null,
                         modifier = Modifier.padding(end = 4.dp).size(18.dp),
                     )
@@ -482,11 +475,11 @@ private fun HistoryFilterSheet(
             Spacer(Modifier.height(16.dp))
 
             val options = listOf(
-                Triple(HistoryFilter.Last24Hours, Icons.Rounded.Schedule,         "Hoy"),
+                Triple(HistoryFilter.Last24Hours, ImageVector.vectorResource(R.drawable.ic_schedule),         "Hoy"),
                 Triple(HistoryFilter.Last7Days,   Icons.Rounded.DateRange,        "Últimos 7 días"),
                 Triple(HistoryFilter.Last30Days,  Icons.Rounded.DateRange,        "Últimos 30 días"),
-                Triple(HistoryFilter.Last90Days,  Icons.Rounded.BarChart,         "Últimos 3 meses"),
-                Triple(HistoryFilter.ByMonth,     Icons.Rounded.CalendarViewMonth,"Por mes"),
+                Triple(HistoryFilter.Last90Days,  ImageVector.vectorResource(R.drawable.ic_bar_chart),         "Últimos 3 meses"),
+                Triple(HistoryFilter.ByMonth,     ImageVector.vectorResource(R.drawable.ic_calendar_view_month),"Por mes"),
             )
             val shapes = segmentShapes(options.size)
 
@@ -572,7 +565,7 @@ private fun DayDetailSheet(
                         horizontalAlignment = Alignment.CenterHorizontally,
                         verticalArrangement = Arrangement.spacedBy(8.dp),
                     ) {
-                        Icon(Icons.Rounded.BarChart, contentDescription = null, tint = cs.onSurfaceVariant, modifier = Modifier.size(28.dp))
+                        Icon(ImageVector.vectorResource(R.drawable.ic_bar_chart), contentDescription = null, tint = cs.onSurfaceVariant, modifier = Modifier.size(28.dp))
                         Text("Sin datos registrados", style = MaterialTheme.typography.bodyLarge, color = cs.onSurfaceVariant)
                     }
                 }
@@ -591,13 +584,13 @@ private fun DayDetailSheet(
                 }
                 // ── WiFi ──────────────────────────────────────────────────
                 DetailSection(
-                    icon = Icons.Rounded.Wifi, label = "WiFi",
+                    icon = ImageVector.vectorResource(R.drawable.ic_wifi), label = "WiFi",
                     total = d.wifiTotalLabel, received = d.wifiReceivedLabel, sent = d.wifiSentLabel,
                     color = cs.secondary,
                 )
                 // ── Móvil ─────────────────────────────────────────────────
                 DetailSection(
-                    icon = Icons.Rounded.NetworkCell, label = "Datos móviles",
+                    icon = ImageVector.vectorResource(R.drawable.ic_network_cell), label = "Datos móviles",
                     total = d.mobileTotalLabel, received = d.mobileReceivedLabel, sent = d.mobileSentLabel,
                     color = cs.tertiary,
                 )
@@ -643,7 +636,7 @@ private fun DetailSection(icon: ImageVector, label: String, total: String, recei
                         verticalArrangement = Arrangement.spacedBy(4.dp),
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                            Icon(Icons.Rounded.ArrowDownward, contentDescription = null, tint = color, modifier = Modifier.size(13.dp))
+                            Icon(ImageVector.vectorResource(R.drawable.ic_arrow_downward), contentDescription = null, tint = color, modifier = Modifier.size(13.dp))
                             Text("Recibido", style = MaterialTheme.typography.labelSmall, color = cs.onSurfaceVariant)
                         }
                         Text(received, style = MaterialTheme.typography.titleSmall.copy(fontFamily = AppCodeFontFamily), fontWeight = FontWeight.Bold)
@@ -659,7 +652,7 @@ private fun DetailSection(icon: ImageVector, label: String, total: String, recei
                         verticalArrangement = Arrangement.spacedBy(4.dp),
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                            Icon(Icons.Rounded.ArrowUpward, contentDescription = null, tint = color, modifier = Modifier.size(13.dp))
+                            Icon(ImageVector.vectorResource(R.drawable.ic_arrow_upward), contentDescription = null, tint = color, modifier = Modifier.size(13.dp))
                             Text("Enviado", style = MaterialTheme.typography.labelSmall, color = cs.onSurfaceVariant)
                         }
                         Text(sent, style = MaterialTheme.typography.titleSmall.copy(fontFamily = AppCodeFontFamily), fontWeight = FontWeight.Bold)

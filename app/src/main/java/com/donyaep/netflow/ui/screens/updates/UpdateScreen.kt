@@ -25,11 +25,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.CheckCircle
-import androidx.compose.material.icons.rounded.Download
-import androidx.compose.material.icons.rounded.ErrorOutline
-import androidx.compose.material.icons.rounded.NewReleases
 import androidx.compose.material.icons.rounded.Refresh
-import androidx.compose.material.icons.rounded.SystemUpdateAlt
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CircularWavyProgressIndicator
@@ -49,12 +45,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.donyaep.netflow.core.update.GitHubUpdateService
 import com.donyaep.netflow.core.update.UpdateCheckStatus
+import com.donyaep.netflow.R
 
 @Composable
 fun UpdateScreen(
@@ -111,7 +109,7 @@ fun UpdateScreen(
                             color = cs.primaryContainer,
                         ) {
                             Icon(
-                                Icons.Rounded.SystemUpdateAlt,
+                                ImageVector.vectorResource(R.drawable.ic_system_update_alt),
                                 contentDescription = null,
                                 tint = cs.onPrimaryContainer,
                                 modifier = Modifier.padding(12.dp).size(26.dp),
@@ -149,12 +147,12 @@ fun UpdateScreen(
                             "La app está actualizada.",
                         )
                         status == UpdateCheckStatus.UpdateAvailable -> Quad(
-                            Icons.Rounded.NewReleases,
+                            ImageVector.vectorResource(R.drawable.ic_new_releases),
                             cs.onSecondaryContainer, cs.secondaryContainer,
                             "Hay una versión más reciente disponible.",
                         )
                         status == UpdateCheckStatus.Error -> Quad(
-                            Icons.Rounded.ErrorOutline,
+                            ImageVector.vectorResource(R.drawable.ic_error_outline),
                             cs.onErrorContainer, cs.errorContainer,
                             message ?: "No se pudo consultar el servidor.",
                         )
@@ -250,7 +248,7 @@ fun UpdateScreen(
                         modifier = Modifier.fillMaxWidth(),
                         contentPadding = ButtonDefaults.ButtonWithIconContentPadding,
                     ) {
-                        Icon(Icons.Rounded.Download, contentDescription = null, modifier = Modifier.size(ButtonDefaults.IconSize))
+                        Icon(ImageVector.vectorResource(R.drawable.ic_download), contentDescription = null, modifier = Modifier.size(ButtonDefaults.IconSize))
                         Spacer(Modifier.size(ButtonDefaults.IconSpacing))
                         Text("Descargar nueva versión")
                     }

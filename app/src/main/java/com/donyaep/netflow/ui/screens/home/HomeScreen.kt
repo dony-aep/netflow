@@ -33,15 +33,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.rounded.ArrowDownward
-import androidx.compose.material.icons.rounded.ArrowUpward
-import androidx.compose.material.icons.rounded.NetworkCell
 import androidx.compose.material.icons.rounded.PlayArrow
-import androidx.compose.material.icons.rounded.DeleteForever
 import androidx.compose.material.icons.rounded.Refresh
-import androidx.compose.material.icons.rounded.Stop
-import androidx.compose.material.icons.rounded.Wifi
-import androidx.compose.material.icons.rounded.WifiOff
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.CardDefaults
@@ -70,7 +63,9 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.hapticfeedback.HapticFeedbackType
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.platform.LocalHapticFeedback
+import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.font.FontFamily
+import com.donyaep.netflow.R
 import com.donyaep.netflow.ui.theme.AppCodeFontFamily
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
@@ -248,19 +243,19 @@ private fun LiveSpeedHero(state: HomeUiState) {
             NetworkType.Wifi -> {
                 targetPrimary = cs.primary
                 targetContainer = cs.primaryContainer
-                networkIcon = Icons.Rounded.Wifi
+                networkIcon = ImageVector.vectorResource(R.drawable.ic_wifi)
                 networkName = "WiFi"
             }
             NetworkType.Mobile -> {
                 targetPrimary = cs.tertiary
                 targetContainer = cs.tertiaryContainer
-                networkIcon = Icons.Rounded.NetworkCell
+                networkIcon = ImageVector.vectorResource(R.drawable.ic_network_cell)
                 networkName = "Datos Móviles"
             }
             NetworkType.None -> {
                 targetPrimary = cs.error
                 targetContainer = cs.errorContainer
-                networkIcon = Icons.Rounded.WifiOff
+                networkIcon = ImageVector.vectorResource(R.drawable.ic_wifi_off)
                 networkName = "Sin Conexión"
             }
         }
@@ -327,7 +322,7 @@ private fun LiveSpeedHero(state: HomeUiState) {
                     horizontalArrangement = Arrangement.spacedBy(6.dp),
                 ) {
                     Icon(
-                        imageVector = Icons.Rounded.ArrowDownward,
+                        imageVector = ImageVector.vectorResource(R.drawable.ic_arrow_downward),
                         contentDescription = null,
                         tint = cs.error,
                         modifier = Modifier.size(16.dp),
@@ -375,7 +370,7 @@ private fun LiveSpeedHero(state: HomeUiState) {
                     horizontalArrangement = Arrangement.spacedBy(6.dp),
                 ) {
                     Icon(
-                        imageVector = Icons.Rounded.ArrowUpward,
+                        imageVector = ImageVector.vectorResource(R.drawable.ic_arrow_upward),
                         contentDescription = null,
                         tint = cs.primary,
                         modifier = Modifier.size(16.dp),
@@ -532,14 +527,14 @@ private fun TodayUsageCard(state: HomeUiState) {
             horizontalArrangement = Arrangement.spacedBy(12.dp),
         ) {
             UsageDetailItem(
-                icon = Icons.Rounded.ArrowDownward,
+                icon = ImageVector.vectorResource(R.drawable.ic_arrow_downward),
                 label = "Bajada",
                 value = state.todayDownloadLabel,
                 accentColor = cs.error,
                 modifier = Modifier.weight(1f),
             )
             UsageDetailItem(
-                icon = Icons.Rounded.ArrowUpward,
+                icon = ImageVector.vectorResource(R.drawable.ic_arrow_upward),
                 label = "Subida",
                 value = state.todayUploadLabel,
                 accentColor = cs.primary,
@@ -555,14 +550,14 @@ private fun TodayUsageCard(state: HomeUiState) {
                 horizontalArrangement = Arrangement.spacedBy(12.dp),
             ) {
                 UsageDetailItem(
-                    icon = Icons.Rounded.Wifi,
+                    icon = ImageVector.vectorResource(R.drawable.ic_wifi),
                     label = "WiFi",
                     value = state.todayWifiLabel,
                     accentColor = cs.secondary,
                     modifier = Modifier.weight(1f),
                 )
                 UsageDetailItem(
-                    icon = Icons.Rounded.NetworkCell,
+                    icon = ImageVector.vectorResource(R.drawable.ic_network_cell),
                     label = "Móvil",
                     value = state.todayMobileLabel,
                     accentColor = cs.tertiary,
@@ -669,7 +664,7 @@ private fun ServiceControlSection(
                             horizontalArrangement = Arrangement.spacedBy(ButtonDefaults.IconSpacing),
                         ) {
                             Icon(
-                                imageVector = if (monitoring) Icons.Rounded.Stop else Icons.Rounded.PlayArrow,
+                                imageVector = if (monitoring) ImageVector.vectorResource(R.drawable.ic_stop) else Icons.Rounded.PlayArrow,
                                 contentDescription = null,
                                 modifier = Modifier.size(ButtonDefaults.IconSize),
                             )

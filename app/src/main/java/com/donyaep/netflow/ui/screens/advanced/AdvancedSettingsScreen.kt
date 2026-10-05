@@ -28,7 +28,6 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
-import androidx.compose.material.icons.rounded.BatteryChargingFull
 import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.material.icons.rounded.LocationOn
 import androidx.compose.material3.Button
@@ -56,12 +55,14 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.core.content.ContextCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
+import com.donyaep.netflow.R
 import kotlinx.coroutines.launch
 
 @Composable
@@ -206,7 +207,7 @@ fun AdvancedSettingsScreen(
 
             item {
                 AdvancedCard(
-                    icon        = Icons.Rounded.BatteryChargingFull,
+                    icon        = ImageVector.vectorResource(R.drawable.ic_battery_charging_full),
                     title       = "Optimización de batería",
                     description = "Ayuda a que el servicio de monitoreo permanezca estable cuando la app entra en segundo plano.",
                     rows        = listOf(

@@ -25,18 +25,9 @@ import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.Check
-import androidx.compose.material.icons.rounded.ChevronRight
-import androidx.compose.material.icons.rounded.DarkMode
-import androidx.compose.material.icons.rounded.DataUsage
 import androidx.compose.material.icons.rounded.Info
-import androidx.compose.material.icons.rounded.LightMode
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.Lock
-import androidx.compose.material.icons.rounded.Restore
-import androidx.compose.material.icons.rounded.Speed
-import androidx.compose.material.icons.rounded.Sync
-import androidx.compose.material.icons.rounded.SystemUpdate
-import androidx.compose.material.icons.rounded.Tune
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonGroupDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
@@ -53,6 +44,8 @@ import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SnackbarHost
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SuggestionChip
@@ -74,6 +67,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.text.font.FontWeight
+import com.donyaep.netflow.R
 import com.donyaep.netflow.ui.theme.AppCodeFontFamily
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -140,9 +134,9 @@ fun SettingsScreen(
             // ── 1. Apariencia ─────────────────────────────────────────────
             item {
                 val themeIcon = when (settings.themeMode) {
-                    ThemeMode.System -> Icons.Rounded.Sync
-                    ThemeMode.Light  -> Icons.Rounded.LightMode
-                    ThemeMode.Dark   -> Icons.Rounded.DarkMode
+                    ThemeMode.System -> ImageVector.vectorResource(R.drawable.ic_sync)
+                    ThemeMode.Light  -> ImageVector.vectorResource(R.drawable.ic_light_mode)
+                    ThemeMode.Dark   -> ImageVector.vectorResource(R.drawable.ic_dark_mode)
                 }
                 SettingsSection(title = "Apariencia") {
                     SettingsItem(
@@ -151,7 +145,7 @@ fun SettingsScreen(
                         headlineContent = { Text("Tema") },
                         supportingContent = { Text(settings.themeMode.displayName) },
                         leadingContent = { Icon(themeIcon, contentDescription = null) },
-                        trailingContent = { Icon(Icons.Rounded.ChevronRight, contentDescription = null) },
+                        trailingContent = { Icon(ImageVector.vectorResource(R.drawable.ic_chevron_right), contentDescription = null) },
                     )
                 }
             }
@@ -164,8 +158,8 @@ fun SettingsScreen(
                         shape = topSegmentShape,
                         headlineContent = { Text("Unidad de velocidad") },
                         supportingContent = { Text(settings.speedUnit.displayName) },
-                        leadingContent = { Icon(Icons.Rounded.Speed, contentDescription = null) },
-                        trailingContent = { Icon(Icons.Rounded.ChevronRight, contentDescription = null) },
+                        leadingContent = { Icon(ImageVector.vectorResource(R.drawable.ic_speed), contentDescription = null) },
+                        trailingContent = { Icon(ImageVector.vectorResource(R.drawable.ic_chevron_right), contentDescription = null) },
                     )
                     Spacer(Modifier.height(2.dp))
                     SettingsItem(
@@ -207,7 +201,7 @@ fun SettingsScreen(
                                     "Sin límite de datos configurado",
                             )
                         },
-                        leadingContent = { Icon(Icons.Rounded.DataUsage, contentDescription = null) },
+                        leadingContent = { Icon(ImageVector.vectorResource(R.drawable.ic_data_usage), contentDescription = null) },
                         trailingContent = {
                             Switch(
                                 checked = settings.dataLimitEnabled,
@@ -232,8 +226,8 @@ fun SettingsScreen(
                                             " · Día ${settings.billingCycleDay} del mes",
                                     )
                                 },
-                                leadingContent = { Icon(Icons.Rounded.Tune, contentDescription = null) },
-                                trailingContent = { Icon(Icons.Rounded.ChevronRight, contentDescription = null) },
+                                leadingContent = { Icon(ImageVector.vectorResource(R.drawable.ic_tune), contentDescription = null) },
+                                trailingContent = { Icon(ImageVector.vectorResource(R.drawable.ic_chevron_right), contentDescription = null) },
                             )
                         }
                     }
@@ -248,8 +242,8 @@ fun SettingsScreen(
                         shape = topSegmentShape,
                         headlineContent = { Text("Opciones avanzadas") },
                         supportingContent = { Text("Configuración técnica del servicio") },
-                        leadingContent = { Icon(Icons.Rounded.Tune, contentDescription = null) },
-                        trailingContent = { Icon(Icons.Rounded.ChevronRight, contentDescription = null) },
+                        leadingContent = { Icon(ImageVector.vectorResource(R.drawable.ic_tune), contentDescription = null) },
+                        trailingContent = { Icon(ImageVector.vectorResource(R.drawable.ic_chevron_right), contentDescription = null) },
                     )
                     Spacer(Modifier.height(2.dp))
                     SettingsItem(
@@ -257,8 +251,8 @@ fun SettingsScreen(
                         shape = middleSegmentShape,
                         headlineContent = { Text("Buscar actualizaciones") },
                         supportingContent = { Text("Verificar nuevas versiones en GitHub") },
-                        leadingContent = { Icon(Icons.Rounded.SystemUpdate, contentDescription = null) },
-                        trailingContent = { Icon(Icons.Rounded.ChevronRight, contentDescription = null) },
+                        leadingContent = { Icon(ImageVector.vectorResource(R.drawable.ic_system_update), contentDescription = null) },
+                        trailingContent = { Icon(ImageVector.vectorResource(R.drawable.ic_chevron_right), contentDescription = null) },
                     )
                     Spacer(Modifier.height(2.dp))
                     SettingsItem(
@@ -267,7 +261,7 @@ fun SettingsScreen(
                         headlineContent = { Text("Acerca de NetFlow") },
                         supportingContent = { Text("Versión e información de la aplicación") },
                         leadingContent = { Icon(Icons.Rounded.Info, contentDescription = null) },
-                        trailingContent = { Icon(Icons.Rounded.ChevronRight, contentDescription = null) },
+                        trailingContent = { Icon(ImageVector.vectorResource(R.drawable.ic_chevron_right), contentDescription = null) },
                     )
                 }
             }
@@ -381,9 +375,9 @@ private fun ThemePickerSheet(
             )
             Spacer(Modifier.height(16.dp))
             val modes = listOf(
-                Triple(ThemeMode.System, Icons.Rounded.Sync, "Automático" to "Sigue la configuración del sistema"),
-                Triple(ThemeMode.Light, Icons.Rounded.LightMode, "Claro" to "Siempre usar tema claro"),
-                Triple(ThemeMode.Dark, Icons.Rounded.DarkMode, "Oscuro" to "Siempre usar tema oscuro"),
+                Triple(ThemeMode.System, ImageVector.vectorResource(R.drawable.ic_sync), "Automático" to "Sigue la configuración del sistema"),
+                Triple(ThemeMode.Light, ImageVector.vectorResource(R.drawable.ic_light_mode), "Claro" to "Siempre usar tema claro"),
+                Triple(ThemeMode.Dark, ImageVector.vectorResource(R.drawable.ic_dark_mode), "Oscuro" to "Siempre usar tema oscuro"),
             )
             modes.forEachIndexed { index, (mode, icon, labels) ->
                 val shape = when (index) {
@@ -465,7 +459,7 @@ private fun SpeedUnitSheet(
                         )
                     },
                     supportingContent = { Text(subtitle) },
-                    leadingContent = { Icon(Icons.Rounded.Speed, contentDescription = null) },
+                    leadingContent = { Icon(ImageVector.vectorResource(R.drawable.ic_speed), contentDescription = null) },
                     trailingContent = {
                         if (current == unit) {
                             Icon(
@@ -531,7 +525,7 @@ private fun DataLimitSheet(
                     },
                 ) {
                     Icon(
-                        Icons.Rounded.Restore,
+                        ImageVector.vectorResource(R.drawable.ic_restore),
                         contentDescription = null,
                         modifier = Modifier.padding(end = 4.dp),
                     )
