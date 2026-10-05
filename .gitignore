@@ -1,25 +1,23 @@
 *.iml
 .gradle
-/local.properties
-/.idea/caches
-/.idea/libraries
-/.idea/modules.xml
-/.idea/workspace.xml
-/.idea/navEditor.xml
-/.idea/assetWizardSettings.xml
+/.idea
+local.properties
 .DS_Store
 /build
 /captures
 .externalNativeBuild
 .cxx
-local.properties
 
 # Release signing
 app/key.properties
 *.jks
+*.keystore
+
+# Build outputs
+*.apk
+*.aab
+/app/release
+*.hprof
 
 # Kotlin compiler cache
 .kotlin/
-
-# Android Studio - local deployment settings
-/.idea/deploymentTargetSelector.xml
