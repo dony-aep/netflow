@@ -47,7 +47,6 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -377,7 +376,7 @@ private fun DayCell(
             if (hasData && !isFuture) {
                 Spacer(Modifier.height(4.dp))
                 Text(
-                    text = data!!.wifiCompactLabel,
+                    text = data.wifiCompactLabel,
                     style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp, fontFamily = AppCodeFontFamily),
                     color = cs.secondary,
                     maxLines = 1,
@@ -410,7 +409,6 @@ private fun HistoryDayList(items: List<HistoryItemUiState>) {
             if (index > 0) Spacer(Modifier.height(2.dp))
             Surface(color = cs.surfaceContainerHigh, shape = shapes[index], modifier = Modifier.fillMaxWidth()) {
                 ListItem(
-                    headlineContent   = { Text(item.date, fontWeight = FontWeight.SemiBold) },
                     supportingContent = { Text("WiFi: ${item.wifiLabel}  ·  Móvil: ${item.mobileLabel}") },
                     trailingContent   = {
                         Text(
@@ -421,7 +419,9 @@ private fun HistoryDayList(items: List<HistoryItemUiState>) {
                         )
                     },
                     colors = ListItemDefaults.colors(containerColor = Color.Transparent),
-                )
+                ) {
+                    Text(item.date, fontWeight = FontWeight.SemiBold)
+                }
             }
         }
     }
@@ -451,7 +451,7 @@ private fun HistoryFilterSheet(
     onDismiss: () -> Unit,
 ) {
     val cs = MaterialTheme.colorScheme
-    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = rememberModalBottomSheetState()) {
+    ModalBottomSheet(onDismissRequest = onDismiss) {
         Column(
             modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp).navigationBarsPadding(),
         ) {
@@ -500,9 +500,6 @@ private fun HistoryFilterSheet(
                     modifier = Modifier.fillMaxWidth(),
                 ) {
                     ListItem(
-                        headlineContent = {
-                            Text(label, fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal)
-                        },
                         leadingContent = {
                             Icon(
                                 imageVector = icon,
@@ -514,7 +511,9 @@ private fun HistoryFilterSheet(
                             if (selected) Icon(Icons.Rounded.Check, contentDescription = null, tint = cs.onSecondaryContainer)
                         },
                         colors = ListItemDefaults.colors(containerColor = Color.Transparent),
-                    )
+                    ) {
+                        Text(label, fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal)
+                    }
                 }
             }
             Spacer(Modifier.height(16.dp))
@@ -545,7 +544,7 @@ private fun DayDetailSheet(
     }
     val hasData = data != null && data.hasData
 
-    ModalBottomSheet(onDismissRequest = onDismiss, sheetState = rememberModalBottomSheetState()) {
+    ModalBottomSheet(onDismissRequest = onDismiss) {
         Column(
             modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp).navigationBarsPadding(),
             verticalArrangement = Arrangement.spacedBy(12.dp),
@@ -578,7 +577,7 @@ private fun DayDetailSheet(
                     }
                 }
             } else {
-                val d = data!!
+                val d = data
                 // ── Total ─────────────────────────────────────────────────
                 Surface(shape = RoundedCornerShape(16.dp), color = cs.primaryContainer, modifier = Modifier.fillMaxWidth()) {
                     Row(

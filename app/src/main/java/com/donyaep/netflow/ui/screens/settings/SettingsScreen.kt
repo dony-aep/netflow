@@ -1,4 +1,4 @@
-@file:OptIn(ExperimentalMaterial3ExpressiveApi::class, ExperimentalMaterial3Api::class)
+@file:OptIn(ExperimentalMaterial3Api::class)
 
 package com.donyaep.netflow.ui.screens.settings
 
@@ -40,7 +40,6 @@ import androidx.compose.material.icons.rounded.Tune
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonGroupDefaults
 import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -62,11 +61,10 @@ import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.ToggleButton
 import androidx.compose.material3.TopAppBarDefaults
-import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.material3.rememberSliderState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableDoubleStateOf
-import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -86,6 +84,7 @@ import com.donyaep.netflow.data.model.SpeedUnit
 import com.donyaep.netflow.data.model.ThemeMode
 import com.donyaep.netflow.data.model.displayName
 import java.time.LocalDate
+import kotlin.math.roundToInt
 
 // ── Shapes para ítems segmentados ──────────────────────────────────────────
 private val topSegmentShape    = RoundedCornerShape(topStart = 28.dp, topEnd = 28.dp, bottomStart = 4.dp, bottomEnd = 4.dp)
@@ -323,13 +322,13 @@ private fun SettingsItem(
         modifier = Modifier.fillMaxWidth(),
     ) {
         ListItem(
-            headlineContent = headlineContent,
             supportingContent = supportingContent,
             leadingContent = leadingContent,
             trailingContent = trailingContent,
             colors = ListItemDefaults.colors(
                 containerColor = Color.Transparent,
             ),
+            content = headlineContent,
         )
     }
 }
@@ -362,7 +361,6 @@ private fun ThemePickerSheet(
     val cs = MaterialTheme.colorScheme
     ModalBottomSheet(
         onDismissRequest = onDismiss,
-        sheetState = rememberModalBottomSheetState(),
     ) {
         Column(
             modifier = Modifier
@@ -431,7 +429,6 @@ private fun SpeedUnitSheet(
     val cs = MaterialTheme.colorScheme
     ModalBottomSheet(
         onDismissRequest = onDismiss,
-        sheetState = rememberModalBottomSheetState(),
     ) {
         Column(
             modifier = Modifier
@@ -495,7 +492,12 @@ private fun DataLimitSheet(
     var localValueText by remember { mutableStateOf(formatLimit(settings.dataLimitValue)) }
     var localUnit  by remember { mutableStateOf(settings.dataLimitUnit) }
     val currentMonthDays = LocalDate.now().lengthOfMonth()
-    var localDay   by remember { mutableIntStateOf(settings.billingCycleDay.coerceAtMost(currentMonthDays)) }
+    val dayState = rememberSliderState(
+        value = settings.billingCycleDay.coerceAtMost(currentMonthDays).toFloat(),
+        steps = currentMonthDays - 2,
+        trackRange = 1f..currentMonthDays.toFloat(),
+    )
+    val localDay = dayState.value.roundToInt()
 
     val parsedValue: Double? = localValueText.replace(",", ".").toDoubleOrNull()?.coerceAtLeast(0.1)
     val isValid = parsedValue != null
@@ -503,7 +505,6 @@ private fun DataLimitSheet(
 
     ModalBottomSheet(
         onDismissRequest = onDismiss,
-        sheetState = rememberModalBottomSheetState(),
     ) {
         Column(
             modifier = Modifier
@@ -526,7 +527,7 @@ private fun DataLimitSheet(
                     onClick = {
                         localValueText = "5"
                         localUnit = DataLimitUnit.GB
-                        localDay = 1
+                        dayState.value = 1f
                     },
                 ) {
                     Icon(
@@ -628,10 +629,8 @@ private fun DataLimitSheet(
                 color = cs.onSurfaceVariant,
             )
             Slider(
-                value = localDay.toFloat(),
-                onValueChange = { localDay = it.toInt().coerceIn(1, currentMonthDays) },
-                valueRange = 1f..currentMonthDays.toFloat(),
-                steps = currentMonthDays - 2,
+                state = dayState,
+                onValueChange = { dayState.value = it },
             )
 
             // Botones
