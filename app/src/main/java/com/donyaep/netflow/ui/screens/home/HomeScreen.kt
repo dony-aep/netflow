@@ -580,7 +580,7 @@ private fun TodayUsageSection(state: HomeUiState) {
         }
 
         if (hasLimit) {
-            val progress = (state.todayTotalBytes.toFloat() / state.dataLimitBytes.toFloat()).coerceIn(0f, 1f)
+            val progress = (state.cycleMobileBytes.toFloat() / state.dataLimitBytes.toFloat()).coerceIn(0f, 1f)
             val nearLimit = progress > 0.80f
             Spacer(Modifier.height(4.dp))
             LinearWavyProgressIndicator(
@@ -590,7 +590,7 @@ private fun TodayUsageSection(state: HomeUiState) {
                 trackColor = if (nearLimit) cs.errorContainer else cs.surfaceContainerHighest,
             )
             Text(
-                text = "Límite: ${state.dataLimitSummary}",
+                text = "Datos móviles del ciclo: ${state.cycleMobileLabel} de ${state.dataLimitSummary}",
                 style = MaterialTheme.typography.labelMedium,
                 color = cs.onSurfaceVariant,
             )

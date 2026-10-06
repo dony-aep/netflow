@@ -31,4 +31,7 @@ data class HomeUiState(
     val dataLimitEnabled: Boolean = false,
     val dataLimitBytes: Long = 0L,
     val dataLimitSummary: String = "Sin límite configurado",
+    // Datos móviles consumidos en el ciclo de facturación actual
+    val cycleMobileBytes: Long = 0L,
+    val cycleMobileLabel: String = "0 B",
 )

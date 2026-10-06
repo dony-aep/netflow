@@ -8,6 +8,7 @@ import com.donyaep.netflow.core.monitoring.MonitoringState
 import com.donyaep.netflow.core.monitoring.MonitoringStateStore
 import com.donyaep.netflow.core.monitoring.NetworkType
 import com.donyaep.netflow.core.monitoring.TrafficFormatter
+import com.donyaep.netflow.core.monitoring.billingCycleStart
 import com.donyaep.netflow.data.model.AppSettings
 import com.donyaep.netflow.data.model.DailyUsage
 import com.donyaep.netflow.data.model.DataLimitUnit
@@ -28,6 +29,7 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     private val settingsRepository: SettingsRepository = appContainer.settingsRepository
     private var currentSettings: AppSettings = AppSettings()
     private var currentDailyUsage: DailyUsage = DailyUsage.empty(todayDate())
+    private var cycleMobileBeforeToday: Long = 0L
 
     private val _uiState = MutableStateFlow(HomeUiState())
     val uiState: StateFlow<HomeUiState> = _uiState.asStateFlow()
@@ -35,20 +37,36 @@ class HomeViewModel(application: Application) : AndroidViewModel(application) {
     init {
         viewModelScope.launch {
             MonitoringStateStore.state.collect { monitoringState ->
-                _uiState.updateFrom(monitoringState, currentSettings, currentDailyUsage)
+                _uiState.updateFrom(monitoringState, currentSettings, currentDailyUsage, cycleMobileBeforeToday)
             }
         }
         viewModelScope.launch {
             settingsRepository.observeSettings().collect { settings ->
                 currentSettings = settings
-                _uiState.updateFrom(MonitoringStateStore.state.value, currentSettings, currentDailyUsage)
+                refreshCycleBase(settings)
+                _uiState.updateFrom(MonitoringStateStore.state.value, currentSettings, currentDailyUsage, cycleMobileBeforeToday)
             }
         }
         viewModelScope.launch {
             dailyUsageRepository.observeTodayUsage().collect { dailyUsage ->
                 currentDailyUsage = dailyUsage
-                _uiState.updateFrom(MonitoringStateStore.state.value, currentSettings, currentDailyUsage)
+                _uiState.updateFrom(MonitoringStateStore.state.value, currentSettings, currentDailyUsage, cycleMobileBeforeToday)
             }
+        }
+    }
+
+    // Lo de hoy llega en vivo por currentDailyUsage, así que la consulta solo cubre los
+    // días anteriores del ciclo y se repite únicamente cuando cambian los ajustes.
+    private suspend fun refreshCycleBase(settings: AppSettings) {
+        val today = LocalDate.now()
+        val cycleStart = billingCycleStart(settings.billingCycleDay, today)
+        cycleMobileBeforeToday = if (settings.dataLimitEnabled && cycleStart.isBefore(today)) {
+            dailyUsageRepository.getMobileBytesBetween(
+                cycleStart.format(DateTimeFormatter.ISO_LOCAL_DATE),
+                today.minusDays(1).format(DateTimeFormatter.ISO_LOCAL_DATE),
+            )
+        } else {
+            0L
         }
     }
 
@@ -65,7 +83,9 @@ private fun MutableStateFlow<HomeUiState>.updateFrom(
     monitoringState: MonitoringState,
     settings: AppSettings,
     dailyUsage: DailyUsage,
+    cycleMobileBeforeToday: Long,
 ) {
+    val cycleMobileBytes = cycleMobileBeforeToday + dailyUsage.mobileTotalBytes
     val useBits = settings.speedUnit == SpeedUnit.BitsPerSecond
     val (dlValue, dlUnit) = monitoringState.downloadSpeedBytesPerSecond.toSpeedParts(useBits)
     val (ulValue, ulUnit) = monitoringState.uploadSpeedBytesPerSecond.toSpeedParts(useBits)
@@ -94,6 +114,8 @@ private fun MutableStateFlow<HomeUiState>.updateFrom(
             dataLimitEnabled = settings.dataLimitEnabled,
             dataLimitBytes = settings.toLimitBytes(),
             dataLimitSummary = settings.toDataLimitSummary(),
+            cycleMobileBytes = cycleMobileBytes,
+            cycleMobileLabel = TrafficFormatter.formatBytes(cycleMobileBytes),
         )
     }
 }
