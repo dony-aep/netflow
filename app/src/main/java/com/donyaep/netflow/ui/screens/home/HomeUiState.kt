@@ -12,6 +12,9 @@ data class HomeUiState(
     val downloadSpeedUnit: String = "B/s",
     val uploadSpeedValue: String = "0",
     val uploadSpeedUnit: String = "B/s",
+    // Velocidad en bruto: decide cuánto se anima la forma del hero
+    val downloadBytesPerSecond: Long = 0L,
+    val uploadBytesPerSecond: Long = 0L,
     // Today usage (human-readable labels)
     val todayDownloadLabel: String = "0 B",
     val todayUploadLabel: String = "0 B",
@@ -22,6 +25,8 @@ data class HomeUiState(
     val todayDownloadBytes: Long = 0L,
     val todayUploadBytes: Long = 0L,
     val todayTotalBytes: Long = 0L,
+    val todayWifiBytes: Long = 0L,
+    val todayMobileBytes: Long = 0L,
     // Data limit info
     val dataLimitEnabled: Boolean = false,
     val dataLimitBytes: Long = 0L,

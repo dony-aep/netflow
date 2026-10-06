@@ -79,6 +79,8 @@ private fun MutableStateFlow<HomeUiState>.updateFrom(
             downloadSpeedUnit = dlUnit,
             uploadSpeedValue = ulValue,
             uploadSpeedUnit = ulUnit,
+            downloadBytesPerSecond = monitoringState.downloadSpeedBytesPerSecond,
+            uploadBytesPerSecond = monitoringState.uploadSpeedBytesPerSecond,
             todayDownloadLabel = TrafficFormatter.formatBytes(dailyUsage.totalReceivedBytes),
             todayUploadLabel = TrafficFormatter.formatBytes(dailyUsage.totalSentBytes),
             todayTotalLabel = TrafficFormatter.formatBytes(dailyUsage.totalBytes),
@@ -87,6 +89,8 @@ private fun MutableStateFlow<HomeUiState>.updateFrom(
             todayDownloadBytes = dailyUsage.totalReceivedBytes,
             todayUploadBytes = dailyUsage.totalSentBytes,
             todayTotalBytes = dailyUsage.totalBytes,
+            todayWifiBytes = dailyUsage.wifiTotalBytes,
+            todayMobileBytes = dailyUsage.mobileTotalBytes,
             dataLimitEnabled = settings.dataLimitEnabled,
             dataLimitBytes = settings.toLimitBytes(),
             dataLimitSummary = settings.toDataLimitSummary(),
@@ -130,7 +134,7 @@ private fun todayDate(): String =
 
 private fun MonitoringState.resolveConnectionLabel(): String = when {
     networkType == NetworkType.Wifi ->
-        wifiSsid.takeUnless { it.isNullOrBlank() } ?: "WiFi conectado"
-    networkType == NetworkType.Mobile -> "Red móvil activa"
-    else -> "Sin conexión"
+        wifiSsid.takeUnless { it.isNullOrBlank() }?.let { "Conectado a $it" } ?: "Conectado por WiFi"
+    networkType == NetworkType.Mobile -> "Conectado por datos móviles"
+    else -> "Sin WiFi ni datos móviles"
 }

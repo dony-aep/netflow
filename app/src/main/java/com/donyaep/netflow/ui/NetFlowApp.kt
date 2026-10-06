@@ -4,12 +4,12 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.Settings
-import androidx.compose.material3.CenterAlignedTopAppBar
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
+import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.Modifier
@@ -48,7 +48,7 @@ fun NetFlowApp() {
         modifier = Modifier.fillMaxSize(),
         topBar = {
             if (!hideOuterTopBar) {
-                CenterAlignedTopAppBar(
+                TopAppBar(
                     title = {
                         Text(
                             text = if (isHomeScreen) "NetFlow" else screenTitle,
