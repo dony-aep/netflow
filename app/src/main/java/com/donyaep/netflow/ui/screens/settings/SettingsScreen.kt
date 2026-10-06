@@ -9,6 +9,7 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.shrinkVertically
 import androidx.compose.foundation.horizontalScroll
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ColumnScope
 import androidx.compose.foundation.layout.PaddingValues
@@ -20,6 +21,7 @@ import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -38,8 +40,6 @@ import androidx.compose.material3.MediumFlexibleTopAppBar
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.ListItem
-import androidx.compose.material3.ListItemDefaults
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Slider
 import androidx.compose.material3.SnackbarHost
@@ -49,7 +49,6 @@ import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.material3.SnackbarHostState
 import androidx.compose.material3.SuggestionChip
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.Text
 import androidx.compose.material3.ToggleButton
@@ -63,11 +62,13 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Shape
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.text.font.FontWeight
+import com.donyaep.netflow.BuildConfig
 import com.donyaep.netflow.R
+import com.donyaep.netflow.ui.components.PulseRow
+import com.donyaep.netflow.ui.components.pulseShape
+import com.donyaep.netflow.ui.components.rememberCookie9Morph
 import com.donyaep.netflow.ui.theme.AppCodeFontFamily
 import androidx.compose.ui.unit.dp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -139,13 +140,12 @@ fun SettingsScreen(
                     ThemeMode.Dark   -> ImageVector.vectorResource(R.drawable.ic_dark_mode)
                 }
                 SettingsSection(title = "Apariencia") {
-                    SettingsItem(
+                    PulseRow(
                         onClick = { showThemeSheet = true },
                         shape = singleSegmentShape,
-                        headlineContent = { Text("Tema") },
-                        supportingContent = { Text(settings.themeMode.displayName) },
-                        leadingContent = { Icon(themeIcon, contentDescription = null) },
-                        trailingContent = { Icon(ImageVector.vectorResource(R.drawable.ic_chevron_right), contentDescription = null) },
+                        icon = themeIcon,
+                        title = "Tema",
+                        value = settings.themeMode.displayName,
                     )
                 }
             }
@@ -153,34 +153,25 @@ fun SettingsScreen(
             // ── 2. Monitoreo ──────────────────────────────────────────────
             item {
                 SettingsSection(title = "Monitoreo") {
-                    SettingsItem(
+                    PulseRow(
                         onClick = { showSpeedUnitSheet = true },
                         shape = topSegmentShape,
-                        headlineContent = { Text("Unidad de velocidad") },
-                        supportingContent = { Text(settings.speedUnit.displayName) },
-                        leadingContent = { Icon(ImageVector.vectorResource(R.drawable.ic_speed), contentDescription = null) },
-                        trailingContent = { Icon(ImageVector.vectorResource(R.drawable.ic_chevron_right), contentDescription = null) },
+                        icon = ImageVector.vectorResource(R.drawable.ic_speed),
+                        title = "Unidad de velocidad",
+                        value = settings.speedUnit.displayName,
                     )
                     Spacer(Modifier.height(2.dp))
-                    SettingsItem(
+                    PulseRow(
                         onClick = viewModel::toggleHideOnLockscreen,
                         shape = bottomSegmentShape,
-                        headlineContent = { Text("Ocultar en lockscreen") },
-                        supportingContent = {
-                            Text(
-                                if (settings.hideOnLockscreen)
-                                    "Velocidad oculta en pantalla de bloqueo"
-                                else
-                                    "Velocidad visible en pantalla de bloqueo",
-                            )
+                        icon = Icons.Rounded.Lock,
+                        title = "Ocultar en la pantalla de bloqueo",
+                        supporting = if (settings.hideOnLockscreen) {
+                            "La velocidad no se ve con el teléfono bloqueado."
+                        } else {
+                            "Ahora la velocidad se ve con el teléfono bloqueado."
                         },
-                        leadingContent = { Icon(Icons.Rounded.Lock, contentDescription = null) },
-                        trailingContent = {
-                            Switch(
-                                checked = settings.hideOnLockscreen,
-                                onCheckedChange = null,
-                            )
-                        },
+                        trailing = { Switch(checked = settings.hideOnLockscreen, onCheckedChange = null) },
                     )
                 }
             }
@@ -188,26 +179,19 @@ fun SettingsScreen(
             // ── 3. Límite de datos ─────────────────────────────────────────
             item {
                 val limitItemShape = if (settings.dataLimitEnabled) topSegmentShape else singleSegmentShape
+                val limitLabel = "${formatLimit(settings.dataLimitValue)} ${settings.dataLimitUnit.name}"
                 SettingsSection(title = "Límite de datos") {
-                    SettingsItem(
+                    PulseRow(
                         onClick = viewModel::toggleDataLimitEnabled,
                         shape = limitItemShape,
-                        headlineContent = { Text("Habilitar límite") },
-                        supportingContent = {
-                            Text(
-                                if (settings.dataLimitEnabled)
-                                    "Activo · ${formatLimit(settings.dataLimitValue)} ${settings.dataLimitUnit.name}/mes"
-                                else
-                                    "Sin límite de datos configurado",
-                            )
+                        icon = ImageVector.vectorResource(R.drawable.ic_data_usage),
+                        title = "Avisarme al llegar a un límite",
+                        supporting = if (settings.dataLimitEnabled) {
+                            "Te aviso al llegar a $limitLabel al mes."
+                        } else {
+                            "Sin límite configurado."
                         },
-                        leadingContent = { Icon(ImageVector.vectorResource(R.drawable.ic_data_usage), contentDescription = null) },
-                        trailingContent = {
-                            Switch(
-                                checked = settings.dataLimitEnabled,
-                                onCheckedChange = null,
-                            )
-                        },
+                        trailing = { Switch(checked = settings.dataLimitEnabled, onCheckedChange = null) },
                     )
                     AnimatedVisibility(
                         visible = settings.dataLimitEnabled,
@@ -216,18 +200,12 @@ fun SettingsScreen(
                     ) {
                         Column {
                             Spacer(Modifier.height(2.dp))
-                            SettingsItem(
+                            PulseRow(
                                 onClick = { showDataLimitSheet = true },
                                 shape = bottomSegmentShape,
-                                headlineContent = { Text("Configurar límite") },
-                                supportingContent = {
-                                    Text(
-                                        "${formatLimit(settings.dataLimitValue)} ${settings.dataLimitUnit.name}" +
-                                            " · Día ${settings.billingCycleDay} del mes",
-                                    )
-                                },
-                                leadingContent = { Icon(ImageVector.vectorResource(R.drawable.ic_tune), contentDescription = null) },
-                                trailingContent = { Icon(ImageVector.vectorResource(R.drawable.ic_chevron_right), contentDescription = null) },
+                                icon = ImageVector.vectorResource(R.drawable.ic_tune),
+                                title = "Configurar límite",
+                                value = "$limitLabel · día ${settings.billingCycleDay}",
                             )
                         }
                     }
@@ -237,31 +215,26 @@ fun SettingsScreen(
             // ── 4. Más opciones ───────────────────────────────────────────
             item {
                 SettingsSection(title = "Más opciones") {
-                    SettingsItem(
+                    PulseRow(
                         onClick = onOpenAdvanced,
                         shape = topSegmentShape,
-                        headlineContent = { Text("Opciones avanzadas") },
-                        supportingContent = { Text("Configuración técnica del servicio") },
-                        leadingContent = { Icon(ImageVector.vectorResource(R.drawable.ic_tune), contentDescription = null) },
-                        trailingContent = { Icon(ImageVector.vectorResource(R.drawable.ic_chevron_right), contentDescription = null) },
+                        icon = ImageVector.vectorResource(R.drawable.ic_tune),
+                        title = "Permisos y batería",
                     )
                     Spacer(Modifier.height(2.dp))
-                    SettingsItem(
+                    PulseRow(
                         onClick = onOpenUpdates,
                         shape = middleSegmentShape,
-                        headlineContent = { Text("Buscar actualizaciones") },
-                        supportingContent = { Text("Verificar nuevas versiones en GitHub") },
-                        leadingContent = { Icon(ImageVector.vectorResource(R.drawable.ic_system_update), contentDescription = null) },
-                        trailingContent = { Icon(ImageVector.vectorResource(R.drawable.ic_chevron_right), contentDescription = null) },
+                        icon = ImageVector.vectorResource(R.drawable.ic_system_update),
+                        title = "Actualizaciones",
+                        value = "v${BuildConfig.VERSION_NAME}",
                     )
                     Spacer(Modifier.height(2.dp))
-                    SettingsItem(
+                    PulseRow(
                         onClick = onOpenAbout,
                         shape = bottomSegmentShape,
-                        headlineContent = { Text("Acerca de NetFlow") },
-                        supportingContent = { Text("Versión e información de la aplicación") },
-                        leadingContent = { Icon(Icons.Rounded.Info, contentDescription = null) },
-                        trailingContent = { Icon(ImageVector.vectorResource(R.drawable.ic_chevron_right), contentDescription = null) },
+                        icon = Icons.Rounded.Info,
+                        title = "Acerca de NetFlow",
                     )
                 }
             }
@@ -299,34 +272,6 @@ fun SettingsScreen(
     }
 }
 
-// ── Ítem de configuración (Surface + ListItem) ────────────────────────────
-@Composable
-private fun SettingsItem(
-    onClick: () -> Unit,
-    shape: Shape,
-    headlineContent: @Composable () -> Unit,
-    supportingContent: @Composable (() -> Unit)? = null,
-    leadingContent: @Composable (() -> Unit)? = null,
-    trailingContent: @Composable (() -> Unit)? = null,
-) {
-    Surface(
-        onClick = onClick,
-        shape = shape,
-        color = MaterialTheme.colorScheme.surfaceContainerHigh,
-        modifier = Modifier.fillMaxWidth(),
-    ) {
-        ListItem(
-            supportingContent = supportingContent,
-            leadingContent = leadingContent,
-            trailingContent = trailingContent,
-            colors = ListItemDefaults.colors(
-                containerColor = Color.Transparent,
-            ),
-            content = headlineContent,
-        )
-    }
-}
-
 // ── Section Header ─────────────────────────────────────────────────────────
 @Composable
 private fun SettingsSection(
@@ -338,8 +283,8 @@ private fun SettingsSection(
             text = title,
             style = MaterialTheme.typography.titleSmall,
             fontWeight = FontWeight.SemiBold,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(horizontal = 4.dp),
+            color = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.padding(horizontal = 8.dp),
         )
         Column(content = content)
     }
@@ -386,26 +331,15 @@ private fun ThemePickerSheet(
                     else           -> middleSegmentShape
                 }
                 if (index > 0) Spacer(Modifier.height(2.dp))
-                SettingsItem(
+                PulseRow(
                     onClick = { onSelect(mode) },
                     shape = shape,
-                    headlineContent = {
-                        Text(
-                            text = labels.first,
-                            fontWeight = if (current == mode) FontWeight.SemiBold else FontWeight.Normal,
-                        )
-                    },
-                    supportingContent = { Text(labels.second) },
-                    leadingContent = { Icon(icon, contentDescription = null) },
-                    trailingContent = {
-                        if (current == mode) {
-                            Icon(
-                                imageVector = Icons.Rounded.Check,
-                                contentDescription = null,
-                                tint = cs.primary,
-                            )
-                        }
-                    },
+                    icon = icon,
+                    title = labels.first,
+                    supporting = labels.second,
+                    selected = current == mode,
+                    container = cs.surfaceContainerHigh,
+                    trailing = { if (current == mode) Icon(Icons.Rounded.Check, contentDescription = null) },
                 )
             }
             Spacer(Modifier.height(24.dp))
@@ -449,26 +383,15 @@ private fun SpeedUnitSheet(
             options.forEachIndexed { index, (unit, label, subtitle) ->
                 val shape = if (index == 0) topSegmentShape else bottomSegmentShape
                 if (index > 0) Spacer(Modifier.height(2.dp))
-                SettingsItem(
+                PulseRow(
                     onClick = { onSelect(unit) },
                     shape = shape,
-                    headlineContent = {
-                        Text(
-                            text = label,
-                            fontWeight = if (current == unit) FontWeight.SemiBold else FontWeight.Normal,
-                        )
-                    },
-                    supportingContent = { Text(subtitle) },
-                    leadingContent = { Icon(ImageVector.vectorResource(R.drawable.ic_speed), contentDescription = null) },
-                    trailingContent = {
-                        if (current == unit) {
-                            Icon(
-                                imageVector = Icons.Rounded.Check,
-                                contentDescription = null,
-                                tint = cs.primary,
-                            )
-                        }
-                    },
+                    icon = ImageVector.vectorResource(R.drawable.ic_speed),
+                    title = label,
+                    supporting = subtitle,
+                    selected = current == unit,
+                    container = cs.surfaceContainerHigh,
+                    trailing = { if (current == unit) Icon(Icons.Rounded.Check, contentDescription = null) },
                 )
             }
             Spacer(Modifier.height(24.dp))
@@ -534,25 +457,25 @@ private fun DataLimitSheet(
             }
 
             // Preview del valor
-            Surface(
-                shape = MaterialTheme.shapes.extraLarge,
-                color = cs.errorContainer,
-                modifier = Modifier.fillMaxWidth(),
+            Box(
+                modifier = Modifier
+                    .size(168.dp)
+                    .align(Alignment.CenterHorizontally)
+                    .pulseShape(morph = rememberCookie9Morph(), level = { 1f }, color = { cs.tertiaryContainer }),
+                contentAlignment = Alignment.Center,
             ) {
-                Column(
-                    modifier = Modifier.padding(16.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text(
                         text = parsedValue?.let { formatLimit(it) } ?: "—",
                         style = MaterialTheme.typography.displaySmall.copy(fontFamily = AppCodeFontFamily),
                         fontWeight = FontWeight.Bold,
-                        color = cs.error,
+                        color = cs.onTertiaryContainer,
+                        maxLines = 1,
                     )
                     Text(
                         text = "${localUnit.name}/mes",
                         style = MaterialTheme.typography.titleMedium,
-                        color = cs.onErrorContainer,
+                        color = cs.onTertiaryContainer,
                     )
                 }
             }

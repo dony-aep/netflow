@@ -32,10 +32,16 @@ data class HistoryItemUiState(
 )
 
 data class HistorySummaryUiState(
-    val title: String,
+    // Frase que precede al total: «En octubre llevas», «Hoy llevas»…
+    val heroLabel: String,
     val totalLabel: String,
     val wifiLabel: String,
     val mobileLabel: String,
+    // Media diaria; solo con al menos dos días registrados
+    val averageLabel: String? = null,
+    // Día de mayor consumo del mes («El jueves 1») y su total
+    val peakDayLabel: String? = null,
+    val peakValueLabel: String = "",
 )
 
 data class HistoryComparisonUiState(
@@ -48,14 +54,16 @@ data class HistoryCalendarDay(
     val dayOfMonth: Int,
     val hasData: Boolean,
     val totalLabel: String,
+    val totalCompactLabel: String,
     val wifiTotalLabel: String,
     val mobileTotalLabel: String,
-    val wifiReceivedLabel: String,
-    val wifiSentLabel: String,
-    val mobileReceivedLabel: String,
-    val mobileSentLabel: String,
-    val wifiCompactLabel: String,
-    val mobileCompactLabel: String,
+    val receivedLabel: String,
+    val sentLabel: String,
+    // Parte de WiFi sobre el total del día, de 0 a 1
+    val wifiShare: Float,
+    // Consumo del día frente al mayor del mes, de 0 a 1
+    val level: Float,
+    val isPeak: Boolean,
 )
 
 data class HistoryUiState(
@@ -66,7 +74,7 @@ data class HistoryUiState(
     val daysInMonth: Int = 31,
     val firstWeekdayOfMonth: Int = 1,
     val summary: HistorySummaryUiState = HistorySummaryUiState(
-        title = "Sin datos",
+        heroLabel = "Sin datos",
         totalLabel = TrafficFormatter.formatBytes(0),
         wifiLabel = TrafficFormatter.formatBytes(0),
         mobileLabel = TrafficFormatter.formatBytes(0),
@@ -123,11 +131,24 @@ class HistoryViewModel(application: Application) : AndroidViewModel(application)
             }
         }.sortedByDescending { it.date }
 
-        val summaryTitle = if (selectedFilter == HistoryFilter.ByMonth) {
-            formatMonth(selectedMonth)
-        } else {
-            selectedFilter.label
+        val locale = Locale.forLanguageTag("es-ES")
+        val heroLabel = when (selectedFilter) {
+            HistoryFilter.Last24Hours -> "Hoy llevas"
+            HistoryFilter.Last7Days   -> "En 7 días llevas"
+            HistoryFilter.Last30Days  -> "En 30 días llevas"
+            HistoryFilter.Last90Days  -> "En 3 meses llevas"
+            HistoryFilter.ByMonth     -> {
+                val month = selectedMonth.format(DateTimeFormatter.ofPattern("MMMM", locale))
+                if (selectedMonth == YearMonth.now()) "En $month llevas" else "En $month usaste"
+            }
         }
+
+        val maxTotal = filteredEntries.maxOfOrNull { entry -> entry.totalBytes }?.coerceAtLeast(1L) ?: 1L
+        val totalBytes = filteredEntries.sumOf { entry -> entry.totalBytes }
+        // Con un solo día no hay con qué comparar: ni media ni día más alto.
+        val peakEntry = filteredEntries
+            .takeIf { selectedFilter == HistoryFilter.ByMonth && it.size >= 2 }
+            ?.maxByOrNull { entry -> entry.totalBytes }
 
         val calendarDays: Map<Int, HistoryCalendarDay> = if (selectedFilter == HistoryFilter.ByMonth) {
             filteredEntries.associate { entry ->
@@ -136,20 +157,19 @@ class HistoryViewModel(application: Application) : AndroidViewModel(application)
                     dayOfMonth        = ld.dayOfMonth,
                     hasData           = entry.totalBytes > 0,
                     totalLabel        = TrafficFormatter.formatBytes(entry.totalBytes),
+                    totalCompactLabel = formatCompact(entry.totalBytes),
                     wifiTotalLabel    = TrafficFormatter.formatBytes(entry.wifiTotalBytes),
                     mobileTotalLabel  = TrafficFormatter.formatBytes(entry.mobileTotalBytes),
-                    wifiReceivedLabel = TrafficFormatter.formatBytes(entry.wifiReceivedBytes),
-                    wifiSentLabel     = TrafficFormatter.formatBytes(entry.wifiSentBytes),
-                    mobileReceivedLabel = TrafficFormatter.formatBytes(entry.mobileReceivedBytes),
-                    mobileSentLabel   = TrafficFormatter.formatBytes(entry.mobileSentBytes),
-                    wifiCompactLabel  = formatCompact(entry.wifiTotalBytes),
-                    mobileCompactLabel = formatCompact(entry.mobileTotalBytes),
+                    receivedLabel     = TrafficFormatter.formatBytes(entry.totalReceivedBytes),
+                    sentLabel         = TrafficFormatter.formatBytes(entry.totalSentBytes),
+                    wifiShare         = entry.wifiTotalBytes.toFloat() / entry.totalBytes.coerceAtLeast(1L),
+                    level             = entry.totalBytes.toFloat() / maxTotal,
+                    isPeak            = entry === peakEntry,
                 )
             }
         } else emptyMap()
 
         _uiState.update {
-            val maxTotal = filteredEntries.maxOfOrNull { entry -> entry.totalBytes }?.coerceAtLeast(1L) ?: 1L
             it.copy(
                 selectedFilter       = selectedFilter,
                 monthLabel           = formatMonth(selectedMonth),
@@ -158,10 +178,17 @@ class HistoryViewModel(application: Application) : AndroidViewModel(application)
                 daysInMonth          = selectedMonth.lengthOfMonth(),
                 firstWeekdayOfMonth  = LocalDate.of(selectedMonth.year, selectedMonth.monthValue, 1).dayOfWeek.value,
                 summary = HistorySummaryUiState(
-                    title = summaryTitle,
-                    totalLabel = TrafficFormatter.formatBytes(filteredEntries.sumOf { entry -> entry.totalBytes }),
+                    heroLabel = heroLabel,
+                    totalLabel = TrafficFormatter.formatBytes(totalBytes),
                     wifiLabel = TrafficFormatter.formatBytes(filteredEntries.sumOf { entry -> entry.wifiTotalBytes }),
                     mobileLabel = TrafficFormatter.formatBytes(filteredEntries.sumOf { entry -> entry.mobileTotalBytes }),
+                    averageLabel = filteredEntries.takeIf { entries -> entries.size >= 2 }?.let { entries ->
+                        "Unos ${TrafficFormatter.formatBytes(totalBytes / entries.size)} al día."
+                    },
+                    peakDayLabel = peakEntry?.let { entry ->
+                        "El ${LocalDate.parse(entry.date).format(DateTimeFormatter.ofPattern("EEEE d", locale))}"
+                    },
+                    peakValueLabel = peakEntry?.let { entry -> TrafficFormatter.formatBytes(entry.totalBytes) }.orEmpty(),
                 ),
                 comparisons = filteredEntries.take(7).map { entry ->
                     HistoryComparisonUiState(

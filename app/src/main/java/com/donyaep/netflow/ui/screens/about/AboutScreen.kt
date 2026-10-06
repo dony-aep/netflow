@@ -1,17 +1,15 @@
 package com.donyaep.netflow.ui.screens.about
 
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.lazy.LazyColumn
-import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material3.Icon
@@ -19,20 +17,23 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.MediumFlexibleTopAppBar
 import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import com.donyaep.netflow.BuildConfig
 import com.donyaep.netflow.R
+import com.donyaep.netflow.ui.components.CALM_DEGREES_PER_SECOND
+import com.donyaep.netflow.ui.components.pulseShape
+import com.donyaep.netflow.ui.components.rememberCookie12Morph
+import com.donyaep.netflow.ui.components.rememberPulseRotation
 import java.time.Year
 
 @Composable
@@ -42,6 +43,7 @@ fun AboutScreen(
 ) {
     val scrollBehavior = TopAppBarDefaults.exitUntilCollapsedScrollBehavior()
     val cs = MaterialTheme.colorScheme
+    val rotation = rememberPulseRotation(CALM_DEGREES_PER_SECOND)
 
     Scaffold(
         modifier = modifier,
@@ -59,91 +61,67 @@ fun AboutScreen(
             )
         },
     ) { innerPadding ->
-        LazyColumn(
+        Column(
             modifier = Modifier
                 .fillMaxSize()
                 .nestedScroll(scrollBehavior.nestedScrollConnection)
-                .padding(innerPadding)
-                .padding(horizontal = 20.dp),
-            verticalArrangement = Arrangement.spacedBy(16.dp),
+                .verticalScroll(rememberScrollState())
+                .padding(innerPadding),
         ) {
-            item { Spacer(Modifier.height(4.dp)) }
-
             // ── Hero ─────────────────────────────────────────────────────────
-            item {
-                Surface(
-                    shape = RoundedCornerShape(28.dp),
-                    color = cs.surfaceContainerHigh,
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    Column(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 20.dp, vertical = 28.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(12.dp),
-                    ) {
-                        Icon(
-                            painter = painterResource(id = R.mipmap.ic_launcher_foreground),
-                            contentDescription = "NetFlow",
-                            tint = Color.Unspecified,
-                            modifier = Modifier.size(160.dp),
-                        )
-                        Text(
-                            "NetFlow",
-                            style = MaterialTheme.typography.displaySmall,
-                            fontWeight = FontWeight.Bold,
-                        )
-                        Surface(
-                            shape = RoundedCornerShape(50.dp),
-                            color = cs.secondaryContainer,
-                        ) {
-                            Text(
-                                "v${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})",
-                                style = MaterialTheme.typography.labelLarge,
-                                fontWeight = FontWeight.SemiBold,
-                                color = cs.onSecondaryContainer,
-                                modifier = Modifier.padding(horizontal = 14.dp, vertical = 6.dp),
-                            )
-                        }
-                    }
-                }
-            }
-
-            // ── Descripción ───────────────────────────────────────────────────
-            item {
-                Surface(
-                    shape = RoundedCornerShape(28.dp),
-                    color = cs.surfaceContainerHigh,
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    Text(
-                        "Monitorea tráfico WiFi y móvil en tiempo real con una base nativa en Kotlin, Jetpack Compose, Room y DataStore.",
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = cs.onSurfaceVariant,
-                        modifier = Modifier.padding(20.dp),
-                    )
-                }
-            }
-
-            // ── Copyright ────────────────────────────────────────────────────
-            item {
-                Column(
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(top = 12.dp),
+                contentAlignment = Alignment.Center,
+            ) {
+                Box(
                     modifier = Modifier
-                        .fillMaxWidth()
-                        .padding(vertical = 8.dp),
-                    horizontalAlignment = Alignment.CenterHorizontally,
-                    verticalArrangement = Arrangement.spacedBy(2.dp),
-                ) {
+                        .size(264.dp)
+                        .graphicsLayer { rotationZ = rotation.floatValue }
+                        .pulseShape(morph = rememberCookie12Morph(), level = { 1f }, color = { cs.primaryContainer }),
+                )
+                Icon(
+                    painter = painterResource(id = R.mipmap.ic_launcher_foreground),
+                    contentDescription = "NetFlow",
+                    tint = Color.Unspecified,
+                    modifier = Modifier.size(176.dp),
+                )
+            }
+
+            Column(
+                modifier = Modifier.padding(start = 24.dp, end = 24.dp, top = 20.dp, bottom = 24.dp),
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+            ) {
+                Column {
                     Text(
-                        "© ${Year.now().value} NetFlow · dony-aep",
-                        style = MaterialTheme.typography.bodySmall,
+                        "NetFlow",
+                        style = MaterialTheme.typography.displaySmall,
+                        fontWeight = FontWeight.Bold,
+                    )
+                    Text(
+                        "Versión ${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})",
+                        style = MaterialTheme.typography.titleMedium,
                         color = cs.onSurfaceVariant,
-                        textAlign = TextAlign.Center,
                     )
                 }
+                Text(
+                    "Mide cuánto baja y sube tu teléfono por WiFi y por datos móviles, en tiempo real " +
+                        "y día a día. Lo que registra se queda en el dispositivo.",
+                    style = MaterialTheme.typography.bodyLarge,
+                    color = cs.onSurfaceVariant,
+                )
+                Text(
+                    "Hecha en Kotlin con Jetpack Compose, Room y DataStore.",
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = cs.onSurfaceVariant,
+                )
+                Text(
+                    "© ${Year.now().value} NetFlow · dony-aep",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = cs.onSurfaceVariant,
+                )
             }
-            item { Spacer(Modifier.height(8.dp)) }
         }
     }
 }

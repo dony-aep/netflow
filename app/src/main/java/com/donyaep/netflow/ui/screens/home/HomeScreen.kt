@@ -15,7 +15,6 @@ import androidx.compose.animation.fadeOut
 import androidx.compose.animation.slideInVertically
 import androidx.compose.animation.slideOutVertically
 import androidx.compose.animation.togetherWith
-import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.BoxWithConstraints
@@ -29,7 +28,6 @@ import androidx.compose.foundation.layout.offset
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.rememberScrollState
-import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.PlayArrow
@@ -37,33 +35,22 @@ import androidx.compose.material.icons.rounded.Refresh
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.ButtonShapes
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButtonShapes
 import androidx.compose.material3.LinearWavyProgressIndicator
 import androidx.compose.material3.MaterialShapes
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
-import androidx.compose.material3.toPath
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
-import androidx.compose.runtime.rememberUpdatedState
-import androidx.compose.runtime.withFrameNanos
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
-import androidx.compose.ui.MotionDurationScale
-import androidx.compose.ui.draw.drawWithCache
-import androidx.compose.ui.geometry.center
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.graphics.Matrix
-import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.vector.ImageVector
@@ -76,17 +63,25 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.util.lerp
 import androidx.core.content.ContextCompat
-import androidx.graphics.shapes.CornerRounding
 import androidx.graphics.shapes.Morph
-import androidx.graphics.shapes.RoundedPolygon
-import androidx.graphics.shapes.star
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
 import androidx.lifecycle.viewmodel.compose.viewModel
 import com.donyaep.netflow.R
 import com.donyaep.netflow.core.monitoring.NetFlowMonitorServiceController
 import com.donyaep.netflow.core.monitoring.NetworkType
+import com.donyaep.netflow.ui.components.BUSY_DEGREES_PER_SECOND
+import com.donyaep.netflow.ui.components.CALM_DEGREES_PER_SECOND
+import com.donyaep.netflow.ui.components.NetworkSplit
+import com.donyaep.netflow.ui.components.PulseControlHeight
+import com.donyaep.netflow.ui.components.PulseLeadingShapes
+import com.donyaep.netflow.ui.components.PulseTrailingShapes
+import com.donyaep.netflow.ui.components.calmShape
+import com.donyaep.netflow.ui.components.pulseShape
+import com.donyaep.netflow.ui.components.rememberCookie12Morph
+import com.donyaep.netflow.ui.components.rememberCookie9Morph
+import com.donyaep.netflow.ui.components.rememberPulseRotation
 import com.donyaep.netflow.ui.theme.AppCodeFontFamily
-import kotlin.coroutines.coroutineContext
+import kotlin.math.abs
 import kotlin.math.ln
 
 // ─────────────────────────────────────────────────────────────────────────────
@@ -226,8 +221,6 @@ fun HomeScreen(
 
 private const val CALM_BYTES_PER_SECOND = 2_000.0
 private const val BUSY_BYTES_PER_SECOND = 2_000_000.0
-private const val CALM_DEGREES_PER_SECOND = 360f / 140f
-private const val BUSY_DEGREES_PER_SECOND = 360f / 48f
 
 // 0 con la red parada y 1 desde unos 2 MB/s. La escala es logarítmica para que
 // navegar y ver vídeo se distingan aunque estén a órdenes de magnitud.
@@ -236,15 +229,6 @@ private fun activityLevel(bytesPerSecond: Long): Float {
     val level = ln(bytesPerSecond / CALM_BYTES_PER_SECOND) / ln(BUSY_BYTES_PER_SECOND / CALM_BYTES_PER_SECOND)
     return level.toFloat().coerceAtMost(1f)
 }
-
-// Casi un círculo, pero con los mismos vértices que la cookie a la que se
-// transforma: partiendo de un círculo liso los lóbulos crecían desiguales.
-private fun calmShape(points: Int): RoundedPolygon =
-    RoundedPolygon.star(
-        numVerticesPerRadius = points,
-        innerRadius = 0.99f,
-        rounding = CornerRounding(radius = 0.5f),
-    ).normalized()
 
 @Composable
 private fun PulseHero(state: HomeUiState) {
@@ -271,9 +255,9 @@ private fun PulseHero(state: HomeUiState) {
         label = "uploadLevel",
     )
 
-    val downloadMorph = remember { Morph(calmShape(points = 12), MaterialShapes.Cookie12Sided) }
+    val downloadMorph = rememberCookie12Morph()
     val offlineMorph = remember { Morph(calmShape(points = 12), MaterialShapes.Cookie4Sided) }
-    val uploadMorph = remember { Morph(calmShape(points = 9), MaterialShapes.Cookie9Sided) }
+    val uploadMorph = rememberCookie9Morph()
 
     val downloadLevel = downloadAxis.coerceIn(0f, 1f)
     val offlineLevel = (-downloadAxis).coerceIn(0f, 1f)
@@ -290,20 +274,10 @@ private fun PulseHero(state: HomeUiState) {
     val smallContainer = lerp(cs.surfaceContainerHighest, cs.tertiaryContainer, uploadLevel.coerceIn(0f, 1f))
     val smallContent = lerp(cs.onSurface, cs.onTertiaryContainer, uploadLevel.coerceIn(0f, 1f))
 
-    val rotation = remember { mutableFloatStateOf(0f) }
-    val degreesPerSecond by rememberUpdatedState(
+
+    val rotation = rememberPulseRotation(
         if (offline) 0f else lerp(CALM_DEGREES_PER_SECOND, BUSY_DEGREES_PER_SECOND, downloadLevel),
     )
-    LaunchedEffect(Unit) {
-        // Con las animaciones del sistema desactivadas la forma se queda quieta.
-        if (coroutineContext[MotionDurationScale]?.scaleFactor == 0f) return@LaunchedEffect
-        var last = withFrameNanos { it }
-        while (true) {
-            val now = withFrameNanos { it }
-            rotation.floatValue = (rotation.floatValue + (now - last) / 1e9f * degreesPerSecond) % 360f
-            last = now
-        }
-    }
 
     BoxWithConstraints(
         modifier = Modifier
@@ -329,16 +303,11 @@ private fun PulseHero(state: HomeUiState) {
                     modifier = Modifier
                         .matchParentSize()
                         .graphicsLayer { rotationZ = rotation.floatValue }
-                        .drawWithCache {
-                            val path = if (downloadAxis >= 0f) {
-                                downloadMorph.toPath(downloadAxis)
-                            } else {
-                                offlineMorph.toPath(-downloadAxis)
-                            }
-                            path.transform(Matrix().apply { scale(size.width, size.height) })
-                            path.translate(size.center - path.getBounds().center)
-                            onDrawBehind { drawPath(path, bigContainer) }
-                        },
+                        .pulseShape(
+                            morph = if (downloadAxis >= 0f) downloadMorph else offlineMorph,
+                            level = { abs(downloadAxis) },
+                            color = { bigContainer },
+                        ),
                 )
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Row(
@@ -410,17 +379,12 @@ private fun PulseHero(state: HomeUiState) {
                 Box(
                     modifier = Modifier
                         .matchParentSize()
-                        .drawWithCache {
-                            val path = uploadMorph.toPath(uploadLevel)
-                            path.transform(Matrix().apply { scale(size.width, size.height) })
-                            path.translate(size.center - path.getBounds().center)
-                            val gap = Stroke(width = 6.dp.toPx())
-                            onDrawBehind {
-                                // El trazo en color de fondo separa la forma pequeña de la grande.
-                                drawPath(path, cs.background, style = gap)
-                                drawPath(path, smallContainer)
-                            }
-                        },
+                        .pulseShape(
+                            morph = uploadMorph,
+                            level = { uploadLevel },
+                            color = { smallContainer },
+                            gapColor = cs.background,
+                        ),
                 )
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Row(
@@ -551,51 +515,16 @@ private fun TodayUsageSection(state: HomeUiState) {
             )
         }
 
-        if (state.todayTotalBytes > 0L) {
-            // Cada tramo conserva un mínimo visible aunque su parte sea casi cero.
-            val wifiShare = (state.todayWifiBytes.toFloat() / state.todayTotalBytes).coerceIn(0.04f, 0.96f)
-            Row(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(20.dp),
-                horizontalArrangement = Arrangement.spacedBy(3.dp),
-            ) {
-                Box(
-                    modifier = Modifier
-                        .weight(wifiShare)
-                        .fillMaxSize()
-                        .background(
-                            cs.secondary,
-                            RoundedCornerShape(topStart = 10.dp, bottomStart = 10.dp, topEnd = 4.dp, bottomEnd = 4.dp),
-                        ),
-                )
-                Box(
-                    modifier = Modifier
-                        .weight(1f - wifiShare)
-                        .fillMaxSize()
-                        .background(
-                            cs.tertiary,
-                            RoundedCornerShape(topStart = 4.dp, bottomStart = 4.dp, topEnd = 10.dp, bottomEnd = 10.dp),
-                        ),
-                )
-            }
-        }
 
-        Row(
-            modifier = Modifier.fillMaxWidth(),
-            horizontalArrangement = Arrangement.SpaceBetween,
-        ) {
-            Text(
-                text = "WiFi ${state.todayWifiLabel}",
-                style = MaterialTheme.typography.bodyMedium,
-                color = cs.secondary,
-            )
-            Text(
-                text = "Móvil ${state.todayMobileLabel}",
-                style = MaterialTheme.typography.bodyMedium,
-                color = cs.tertiary,
-            )
-        }
+        NetworkSplit(
+            wifiShare = if (state.todayTotalBytes > 0L) {
+                state.todayWifiBytes.toFloat() / state.todayTotalBytes
+            } else {
+                null
+            },
+            wifiLabel = state.todayWifiLabel,
+            mobileLabel = state.todayMobileLabel,
+        )
 
         Row(horizontalArrangement = Arrangement.spacedBy(20.dp)) {
             Text(
@@ -636,15 +565,6 @@ private fun TodayUsageSection(state: HomeUiState) {
 // reiniciar los contadores del día.
 // ─────────────────────────────────────────────────────────────────────────────
 
-private val ControlHeight = 72.dp
-private val LeadingControlShapes = ButtonShapes(
-    shape = RoundedCornerShape(topStart = 36.dp, bottomStart = 36.dp, topEnd = 12.dp, bottomEnd = 12.dp),
-    pressedShape = RoundedCornerShape(topStart = 24.dp, bottomStart = 24.dp, topEnd = 6.dp, bottomEnd = 6.dp),
-)
-private val TrailingControlShapes = IconButtonShapes(
-    shape = RoundedCornerShape(topStart = 12.dp, bottomStart = 12.dp, topEnd = 36.dp, bottomEnd = 36.dp),
-    pressedShape = RoundedCornerShape(topStart = 6.dp, bottomStart = 6.dp, topEnd = 24.dp, bottomEnd = 24.dp),
-)
 
 @Composable
 private fun ServiceControlSection(
@@ -666,10 +586,10 @@ private fun ServiceControlSection(
                 haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                 if (state.isMonitoring) onStopMonitoring() else onStartMonitoring()
             },
-            shapes = LeadingControlShapes,
+            shapes = PulseLeadingShapes,
             modifier = Modifier
                 .weight(1f)
-                .height(ControlHeight),
+                .height(PulseControlHeight),
         ) {
             // Animación de icono + etiqueta al cambiar el estado de monitoreo
             AnimatedContent(
@@ -703,8 +623,8 @@ private fun ServiceControlSection(
                 haptic.performHapticFeedback(HapticFeedbackType.LongPress)
                 onResetToday()
             },
-            shapes = TrailingControlShapes,
-            modifier = Modifier.size(ControlHeight),
+            shapes = PulseTrailingShapes,
+            modifier = Modifier.size(PulseControlHeight),
         ) {
             Icon(
                 imageVector = Icons.Rounded.Refresh,

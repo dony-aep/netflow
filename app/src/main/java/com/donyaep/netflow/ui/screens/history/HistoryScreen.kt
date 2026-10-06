@@ -9,23 +9,23 @@ import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.aspectRatio
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.navigationBarsPadding
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.automirrored.rounded.ArrowForward
 import androidx.compose.material.icons.rounded.Check
 import androidx.compose.material.icons.rounded.DateRange
-import androidx.compose.material3.CenterAlignedTopAppBar
-import androidx.compose.material3.ElevatedCard
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -38,6 +38,7 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -45,16 +46,25 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.lerp
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.res.vectorResource
 import androidx.compose.ui.text.font.FontFamily
+import androidx.compose.ui.text.SpanStyle
+import androidx.compose.ui.text.buildAnnotatedString
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.withStyle
+import androidx.graphics.shapes.Morph
 import com.donyaep.netflow.R
+import com.donyaep.netflow.ui.components.NetworkSplit
+import com.donyaep.netflow.ui.components.PulseRow
+import com.donyaep.netflow.ui.components.pulseShape
+import com.donyaep.netflow.ui.components.rememberCookie12Morph
+import com.donyaep.netflow.ui.components.rememberCookie9Morph
 import com.donyaep.netflow.ui.theme.AppCodeFontFamily
-import androidx.compose.ui.text.style.TextAlign
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.lifecycle.compose.collectAsStateWithLifecycle
@@ -96,11 +106,10 @@ fun HistoryScreen(
     Scaffold(
         modifier = modifier,
         topBar = {
-            CenterAlignedTopAppBar(
+            TopAppBar(
                 title = {
                     Text(
-                        text = if (uiState.selectedFilter == HistoryFilter.ByMonth)
-                            uiState.monthLabel else "Historial",
+                        text = "Historial",
                         style = MaterialTheme.typography.titleLarge,
                         fontWeight = FontWeight.Bold,
                     )
@@ -131,7 +140,7 @@ fun HistoryScreen(
             verticalArrangement = Arrangement.spacedBy(16.dp),
         ) {
             // ── Resumen ──────────────────────────────────────────────────
-            item { HistorySummaryCard(uiState = uiState) }
+            item { HistoryHero(summary = uiState.summary) }
 
             if (uiState.selectedFilter == HistoryFilter.ByMonth) {
                 // ── Navegador de mes ─────────────────────────────────────
@@ -154,6 +163,26 @@ fun HistoryScreen(
                         onPrevious        = viewModel::previousMonth,
                         onNext            = viewModel::nextMonth,
                     )
+                }
+                uiState.summary.peakDayLabel?.let { peakDay ->
+                    item {
+                        Text(
+                            text = buildAnnotatedString {
+                                append("$peakDay fue tu día más alto, con ")
+                                withStyle(
+                                    SpanStyle(
+                                        color = cs.primary,
+                                        fontFamily = AppCodeFontFamily,
+                                        fontWeight = FontWeight.Bold,
+                                    ),
+                                ) { append(uiState.summary.peakValueLabel) }
+                                append(".")
+                            },
+                            style = MaterialTheme.typography.bodyLarge,
+                            color = cs.onSurfaceVariant,
+                            modifier = Modifier.padding(horizontal = 8.dp),
+                        )
+                    }
                 }
             } else {
                 // ── Lista de días ─────────────────────────────────────────
@@ -186,51 +215,86 @@ fun HistoryScreen(
     }
 }
 
-// ── Summary Card ──────────────────────────────────────────────────────────────
+// ── Hero ──────────────────────────────────────────────────────────────────────
 @Composable
-private fun HistorySummaryCard(uiState: HistoryUiState) {
+private fun HistoryHero(summary: HistorySummaryUiState) {
     val cs = MaterialTheme.colorScheme
-    ElevatedCard(modifier = Modifier.fillMaxWidth(), shape = RoundedCornerShape(28.dp)) {
-        Row(
-            modifier = Modifier.padding(20.dp),
-            verticalAlignment = Alignment.CenterVertically,
+    val (value, unit) = summary.totalLabel.splitValueAndUnit()
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(18.dp),
+    ) {
+        Box(
+            modifier = Modifier
+                .size(188.dp)
+                .pulseShape(morph = rememberCookie9Morph(), level = { 1f }, color = { cs.primaryContainer }),
+            contentAlignment = Alignment.Center,
         ) {
-            Column(modifier = Modifier.weight(1f), verticalArrangement = Arrangement.spacedBy(2.dp)) {
+            Column(horizontalAlignment = Alignment.CenterHorizontally) {
                 Text(
-                    text = uiState.summary.title,
+                    text = summary.heroLabel,
                     style = MaterialTheme.typography.labelLarge,
-                    fontWeight = FontWeight.SemiBold,
-                    color = cs.onSurfaceVariant,
+                    color = cs.onPrimaryContainer,
+                    maxLines = 1,
                 )
+                ShapeFigure(value = value, color = cs.onPrimaryContainer)
                 Text(
-                    text = uiState.summary.totalLabel,
-                    style = MaterialTheme.typography.headlineLarge.copy(fontFamily = AppCodeFontFamily),
-                    fontWeight = FontWeight.Bold,
-                    color = cs.primary,
+                    text = unit,
+                    style = MaterialTheme.typography.titleMedium,
+                    fontWeight = FontWeight.SemiBold,
+                    color = cs.onPrimaryContainer,
                 )
             }
-            Spacer(Modifier.width(12.dp))
-            Column(
-                horizontalAlignment = Alignment.End,
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-            ) {
-                SummaryNetRow(ImageVector.vectorResource(R.drawable.ic_wifi),        "WiFi",  uiState.summary.wifiLabel,   cs.secondary)
-                SummaryNetRow(ImageVector.vectorResource(R.drawable.ic_network_cell), "Móvil", uiState.summary.mobileLabel, cs.tertiary)
+        }
+        Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+            LabeledFigure(label = "WiFi", value = summary.wifiLabel, color = cs.secondary)
+            LabeledFigure(label = "Móvil", value = summary.mobileLabel, color = cs.tertiary)
+            summary.averageLabel?.let { average ->
+                Text(average, style = MaterialTheme.typography.bodyMedium, color = cs.onSurfaceVariant)
             }
         }
     }
 }
 
+// Cifra dentro de la forma: los valores largos bajan de cuerpo para caber.
 @Composable
-private fun SummaryNetRow(icon: ImageVector, label: String, value: String, color: Color) {
-    Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(6.dp)) {
-        Icon(icon, contentDescription = null, tint = color, modifier = Modifier.size(15.dp))
-        Column(horizontalAlignment = Alignment.End) {
-            Text(label, style = MaterialTheme.typography.labelSmall, color = color.copy(alpha = 0.75f))
-            Text(value, style = MaterialTheme.typography.titleSmall.copy(fontFamily = AppCodeFontFamily), fontWeight = FontWeight.Bold, color = color)
-        }
+private fun ShapeFigure(value: String, color: Color) {
+    val fontSize = when {
+        value.length <= 4 -> 54.sp
+        value.length == 5 -> 44.sp
+        else -> 36.sp
+    }
+    Text(
+        text = value,
+        style = MaterialTheme.typography.displayMedium.copy(
+            fontFamily = AppCodeFontFamily,
+            fontWeight = FontWeight.ExtraBold,
+            fontSize = fontSize,
+            lineHeight = fontSize * 1.12f,
+            letterSpacing = (-2).sp,
+        ),
+        color = color,
+        maxLines = 1,
+    )
+}
+
+@Composable
+private fun LabeledFigure(label: String, value: String, color: Color) {
+    Column {
+        Text(label, style = MaterialTheme.typography.bodyMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+        Text(
+            text = value,
+            style = MaterialTheme.typography.titleLarge.copy(fontFamily = AppCodeFontFamily),
+            fontWeight = FontWeight.Bold,
+            color = color,
+        )
     }
 }
+
+// "17.8 GB" → ("17.8", "GB")
+private fun String.splitValueAndUnit(): Pair<String, String> =
+    substringBeforeLast(' ') to substringAfterLast(' ', "")
 
 // ── Month Navigator ───────────────────────────────────────────────────────────
 @Composable
@@ -264,6 +328,7 @@ private fun MonthCalendar(
     val today = remember { LocalDate.now() }
     val isCurrentMonth = selectedYearMonth == YearMonth.now()
     val cs = MaterialTheme.colorScheme
+    val dayMorph = rememberCookie12Morph()
 
     val leadingEmpties = firstWeekday - 1
     val total = leadingEmpties + daysInMonth
@@ -313,12 +378,13 @@ private fun MonthCalendar(
                             DayCell(
                                 day      = day,
                                 data     = calendarDays[day],
+                                morph    = dayMorph,
                                 isToday  = isToday,
                                 isFuture = isFuture,
                                 onClick  = { if (!isFuture) onDayClick(day, calendarDays[day]) },
                             )
                         } else {
-                            Spacer(modifier = Modifier.fillMaxWidth().height(72.dp))
+                            Spacer(modifier = Modifier.fillMaxWidth().aspectRatio(1f))
                         }
                     }
                 }
@@ -328,65 +394,59 @@ private fun MonthCalendar(
 }
 
 // ── Day Cell ──────────────────────────────────────────────────────────────────
+// Cada día es una forma: más festoneada y más intensa cuanto más se consumió
+// frente al día más alto del mes.
 @Composable
 private fun DayCell(
     day: Int,
     data: HistoryCalendarDay?,
+    morph: Morph,
     isToday: Boolean,
     isFuture: Boolean,
     onClick: () -> Unit,
 ) {
     val cs = MaterialTheme.colorScheme
-    val containerColor = when {
-        isToday  -> cs.primaryContainer
-        isFuture -> cs.surfaceContainerHigh.copy(alpha = 0.35f)
-        else     -> cs.surfaceContainerHigh
+    val hasData = data != null && data.hasData && !isFuture
+    val level = if (hasData) data.level else 0f
+    val container = when {
+        !hasData -> Color.Transparent
+        isToday  -> cs.primary
+        else     -> lerp(cs.surfaceContainerHigh, cs.primaryContainer, level)
     }
-    val hasData = data != null && data.hasData
+    val content = when {
+        isFuture -> cs.onSurface.copy(alpha = 0.35f)
+        !hasData -> if (isToday) cs.primary else cs.onSurfaceVariant
+        isToday  -> cs.onPrimary
+        else     -> cs.onSurface
+    }
 
-    Surface(
-        onClick = onClick,
-        enabled = !isFuture,
-        shape = RoundedCornerShape(12.dp),
-        color = containerColor,
-        modifier = Modifier.fillMaxWidth().height(72.dp),
+    Box(
+        modifier = Modifier
+            .fillMaxWidth()
+            .aspectRatio(1f)
+            .clip(CircleShape)
+            .clickable(enabled = !isFuture, onClick = onClick)
+            .pulseShape(morph = morph, level = { level }, color = { container }),
+        contentAlignment = Alignment.Center,
     ) {
-        Column(
-            modifier = Modifier.padding(horizontal = 4.dp, vertical = 6.dp),
-            horizontalAlignment = Alignment.CenterHorizontally,
-            verticalArrangement = Arrangement.Top,
-        ) {
+        Column(horizontalAlignment = Alignment.CenterHorizontally) {
             Text(
                 text = "$day",
                 style = MaterialTheme.typography.labelLarge,
-                fontWeight = if (isToday) FontWeight.Bold else FontWeight.Medium,
-                color = when {
-                    isFuture -> cs.onSurface.copy(alpha = 0.35f)
-                    isToday  -> cs.onPrimaryContainer
-                    else     -> cs.onSurface
-                },
+                fontWeight = if (hasData || isToday) FontWeight.Bold else FontWeight.Medium,
+                color = content,
             )
-            if (hasData && !isFuture) {
-                Spacer(Modifier.height(4.dp))
+            if (hasData) {
                 Text(
-                    text = data.wifiCompactLabel,
-                    style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp, fontFamily = AppCodeFontFamily),
-                    color = cs.secondary,
+                    text = data.totalCompactLabel,
+                    style = MaterialTheme.typography.labelSmall.copy(
+                        fontSize = 10.sp,
+                        lineHeight = 12.sp,
+                        fontFamily = AppCodeFontFamily,
+                    ),
+                    color = content,
                     maxLines = 1,
-                    overflow = TextOverflow.Clip,
-                    textAlign = TextAlign.Center,
                 )
-                Text(
-                    text = data.mobileCompactLabel,
-                    style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp, fontFamily = AppCodeFontFamily),
-                    color = cs.tertiary,
-                    maxLines = 1,
-                    overflow = TextOverflow.Clip,
-                    textAlign = TextAlign.Center,
-                )
-            } else if (!isFuture) {
-                Spacer(Modifier.height(6.dp))
-                Text(text = "·", style = MaterialTheme.typography.labelSmall, color = cs.onSurface.copy(alpha = 0.25f))
             }
         }
     }
@@ -486,28 +546,15 @@ private fun HistoryFilterSheet(
             options.forEachIndexed { index, (filter, icon, label) ->
                 if (index > 0) Spacer(Modifier.height(2.dp))
                 val selected = current == filter
-                Surface(
+                PulseRow(
                     onClick = { onSelect(filter) },
-                    shape   = shapes[index],
-                    color   = if (selected) cs.secondaryContainer else cs.surfaceContainerHigh,
-                    modifier = Modifier.fillMaxWidth(),
-                ) {
-                    ListItem(
-                        leadingContent = {
-                            Icon(
-                                imageVector = icon,
-                                contentDescription = null,
-                                tint = if (selected) cs.onSecondaryContainer else cs.onSurfaceVariant,
-                            )
-                        },
-                        trailingContent = {
-                            if (selected) Icon(Icons.Rounded.Check, contentDescription = null, tint = cs.onSecondaryContainer)
-                        },
-                        colors = ListItemDefaults.colors(containerColor = Color.Transparent),
-                    ) {
-                        Text(label, fontWeight = if (selected) FontWeight.SemiBold else FontWeight.Normal)
-                    }
-                }
+                    shape = shapes[index],
+                    icon = icon,
+                    title = label,
+                    selected = selected,
+                    container = cs.surfaceContainerHigh,
+                    trailing = { if (selected) Icon(Icons.Rounded.Check, contentDescription = null) },
+                )
             }
             Spacer(Modifier.height(16.dp))
         }
@@ -539,126 +586,63 @@ private fun DayDetailSheet(
 
     ModalBottomSheet(onDismissRequest = onDismiss) {
         Column(
-            modifier = Modifier.fillMaxWidth().padding(horizontal = 20.dp).navigationBarsPadding(),
-            verticalArrangement = Arrangement.spacedBy(12.dp),
+            modifier = Modifier.fillMaxWidth().padding(horizontal = 24.dp).navigationBarsPadding(),
         ) {
-            // ── Fecha ─────────────────────────────────────────────────────
-            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                if (isToday) {
-                    Surface(shape = RoundedCornerShape(4.dp), color = cs.primary) {
-                        Text(
-                            "HOY",
-                            style = MaterialTheme.typography.labelSmall,
-                            fontWeight = FontWeight.Bold,
-                            color = cs.onPrimary,
-                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp),
-                        )
-                    }
-                }
-                Text(dateLabel, style = MaterialTheme.typography.titleMedium, fontWeight = FontWeight.SemiBold)
+            Text(dateLabel, style = MaterialTheme.typography.titleLarge, fontWeight = FontWeight.SemiBold)
+            val note = when {
+                !hasData    -> "No hay datos de este día."
+                isToday     -> "Hoy, hasta ahora."
+                data.isPeak -> "Tu día más alto del mes."
+                else        -> null
             }
-            if (!hasData) {
-                // ── Sin datos ─────────────────────────────────────────────
-                Surface(shape = RoundedCornerShape(16.dp), color = cs.surfaceContainerHigh, modifier = Modifier.fillMaxWidth()) {
-                    Column(
-                        modifier = Modifier.padding(24.dp),
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        verticalArrangement = Arrangement.spacedBy(8.dp),
-                    ) {
-                        Icon(ImageVector.vectorResource(R.drawable.ic_bar_chart), contentDescription = null, tint = cs.onSurfaceVariant, modifier = Modifier.size(28.dp))
-                        Text("Sin datos registrados", style = MaterialTheme.typography.bodyLarge, color = cs.onSurfaceVariant)
-                    }
-                }
-            } else {
-                val d = data
-                // ── Total ─────────────────────────────────────────────────
-                Surface(shape = RoundedCornerShape(16.dp), color = cs.primaryContainer, modifier = Modifier.fillMaxWidth()) {
-                    Row(
-                        modifier = Modifier.padding(16.dp),
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.Center,
-                    ) {
-                        Text("Total: ", style = MaterialTheme.typography.titleSmall, color = cs.onPrimaryContainer.copy(alpha = 0.8f))
-                        Text(d.totalLabel, style = MaterialTheme.typography.headlineSmall.copy(fontFamily = AppCodeFontFamily), fontWeight = FontWeight.Bold, color = cs.onPrimaryContainer)
-                    }
-                }
-                // ── WiFi ──────────────────────────────────────────────────
-                DetailSection(
-                    icon = ImageVector.vectorResource(R.drawable.ic_wifi), label = "WiFi",
-                    total = d.wifiTotalLabel, received = d.wifiReceivedLabel, sent = d.wifiSentLabel,
-                    color = cs.secondary,
-                )
-                // ── Móvil ─────────────────────────────────────────────────
-                DetailSection(
-                    icon = ImageVector.vectorResource(R.drawable.ic_network_cell), label = "Datos móviles",
-                    total = d.mobileTotalLabel, received = d.mobileReceivedLabel, sent = d.mobileSentLabel,
-                    color = cs.tertiary,
+            note?.let {
+                Text(
+                    text = it,
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = cs.onSurfaceVariant,
+                    modifier = Modifier.padding(top = 2.dp),
                 )
             }
-            Spacer(Modifier.height(8.dp))
-        }
-    }
-}
-
-// ── Detail Section ────────────────────────────────────────────────────────────
-@Composable
-private fun DetailSection(icon: ImageVector, label: String, total: String, received: String, sent: String, color: Color) {
-    val cs = MaterialTheme.colorScheme
-    Surface(
-        shape = RoundedCornerShape(20.dp),
-        color = color.copy(alpha = 0.10f),
-        modifier = Modifier.fillMaxWidth(),
-    ) {
-        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            // Cabecera: icono + etiqueta + total
-            Row(
-                modifier = Modifier.fillMaxWidth(),
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween,
-            ) {
-                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(10.dp)) {
-                    Surface(shape = RoundedCornerShape(12.dp), color = color.copy(alpha = 0.18f)) {
-                        Icon(icon, contentDescription = null, tint = color, modifier = Modifier.padding(10.dp))
-                    }
-                    Text(label, style = MaterialTheme.typography.titleSmall, fontWeight = FontWeight.SemiBold, color = color)
-                }
-                Text(total, style = MaterialTheme.typography.titleLarge.copy(fontFamily = AppCodeFontFamily), fontWeight = FontWeight.Bold, color = color)
-            }
-            // Tarjetas Recibido / Enviado
-            Row(modifier = Modifier.fillMaxWidth(), horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                Surface(
-                    shape = RoundedCornerShape(14.dp),
-                    color = cs.surfaceContainerHigh,
-                    modifier = Modifier.weight(1f),
+            if (hasData) {
+                val (value, unit) = data.totalLabel.splitValueAndUnit()
+                Spacer(Modifier.height(16.dp))
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(20.dp),
                 ) {
-                    Column(
-                        modifier = Modifier.padding(12.dp),
-                        verticalArrangement = Arrangement.spacedBy(4.dp),
+                    Box(
+                        modifier = Modifier
+                            .size(176.dp)
+                            .pulseShape(
+                                morph = rememberCookie12Morph(),
+                                level = { data.level },
+                                color = { cs.primaryContainer },
+                            ),
+                        contentAlignment = Alignment.Center,
                     ) {
-                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                            Icon(ImageVector.vectorResource(R.drawable.ic_arrow_downward), contentDescription = null, tint = color, modifier = Modifier.size(13.dp))
-                            Text("Recibido", style = MaterialTheme.typography.labelSmall, color = cs.onSurfaceVariant)
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            ShapeFigure(value = value, color = cs.onPrimaryContainer)
+                            Text(
+                                text = unit,
+                                style = MaterialTheme.typography.titleMedium,
+                                fontWeight = FontWeight.SemiBold,
+                                color = cs.onPrimaryContainer,
+                            )
                         }
-                        Text(received, style = MaterialTheme.typography.titleSmall.copy(fontFamily = AppCodeFontFamily), fontWeight = FontWeight.Bold)
+                    }
+                    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                        LabeledFigure(label = "Bajaste", value = data.receivedLabel, color = cs.primary)
+                        LabeledFigure(label = "Subiste", value = data.sentLabel, color = cs.tertiary)
                     }
                 }
-                Surface(
-                    shape = RoundedCornerShape(14.dp),
-                    color = cs.surfaceContainerHigh,
-                    modifier = Modifier.weight(1f),
-                ) {
-                    Column(
-                        modifier = Modifier.padding(12.dp),
-                        verticalArrangement = Arrangement.spacedBy(4.dp),
-                    ) {
-                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(4.dp)) {
-                            Icon(ImageVector.vectorResource(R.drawable.ic_arrow_upward), contentDescription = null, tint = color, modifier = Modifier.size(13.dp))
-                            Text("Enviado", style = MaterialTheme.typography.labelSmall, color = cs.onSurfaceVariant)
-                        }
-                        Text(sent, style = MaterialTheme.typography.titleSmall.copy(fontFamily = AppCodeFontFamily), fontWeight = FontWeight.Bold)
-                    }
-                }
+                Spacer(Modifier.height(22.dp))
+                NetworkSplit(
+                    wifiShare = data.wifiShare,
+                    wifiLabel = data.wifiTotalLabel,
+                    mobileLabel = data.mobileTotalLabel,
+                )
             }
+            Spacer(Modifier.height(24.dp))
         }
     }
 }

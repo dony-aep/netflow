@@ -15,6 +15,7 @@ import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
 import androidx.compose.animation.togetherWith
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -31,7 +32,6 @@ import androidx.compose.material.icons.automirrored.rounded.ArrowBack
 import androidx.compose.material.icons.rounded.CheckCircle
 import androidx.compose.material.icons.rounded.LocationOn
 import androidx.compose.material3.Button
-import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -63,6 +63,9 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.donyaep.netflow.R
+import com.donyaep.netflow.ui.components.PulseSingleShapes
+import com.donyaep.netflow.ui.components.pulseShape
+import com.donyaep.netflow.ui.components.rememberCookie9Morph
 import kotlinx.coroutines.launch
 
 @Composable
@@ -157,7 +160,7 @@ fun AdvancedSettingsScreen(
         snackbarHost = { SnackbarHost(snackbarHostState) },
         topBar = {
             MediumFlexibleTopAppBar(
-                title = { Text("Ajustes avanzados") },
+                title = { Text("Permisos y batería") },
                 navigationIcon = {
                     IconButton(onClick = onNavigateBack) {
                         Icon(Icons.AutoMirrored.Rounded.ArrowBack, contentDescription = "Volver")
@@ -235,24 +238,6 @@ fun AdvancedSettingsScreen(
 // ── Components ────────────────────────────────────────────────────────────────
 
 @Composable
-private fun StatusChip(value: String) {
-    val cs = MaterialTheme.colorScheme
-    val isActive = value == "Activo" || value == "Activa"
-    Surface(
-        shape = RoundedCornerShape(50.dp),
-        color = if (isActive) cs.tertiaryContainer else cs.errorContainer,
-    ) {
-        Text(
-            value,
-            style = MaterialTheme.typography.labelMedium,
-            fontWeight = FontWeight.SemiBold,
-            color = if (isActive) cs.onTertiaryContainer else cs.onErrorContainer,
-            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
-        )
-    }
-}
-
-@Composable
 private fun AdvancedCard(
     icon: ImageVector,
     title: String,
@@ -263,9 +248,10 @@ private fun AdvancedCard(
     actionLabel: String,
 ) {
     val cs = MaterialTheme.colorScheme
+    val morph = rememberCookie9Morph()
     Surface(
         shape = RoundedCornerShape(28.dp),
-        color = cs.surfaceContainerHigh,
+        color = cs.surfaceContainer,
         modifier = Modifier.fillMaxWidth(),
     ) {
         Column(
@@ -275,17 +261,24 @@ private fun AdvancedCard(
             // Cabecera
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.spacedBy(12.dp),
+                horizontalArrangement = Arrangement.spacedBy(14.dp),
             ) {
-                Surface(
-                    shape = RoundedCornerShape(14.dp),
-                    color = if (isGranted) cs.tertiaryContainer else cs.primaryContainer,
+                // Festoneada mientras falta algo por conceder; lisa cuando ya está todo.
+                Box(
+                    modifier = Modifier
+                        .size(48.dp)
+                        .pulseShape(
+                            morph = morph,
+                            level = { if (isGranted) 0f else 1f },
+                            color = { if (isGranted) cs.secondaryContainer else cs.primaryContainer },
+                        ),
+                    contentAlignment = Alignment.Center,
                 ) {
                     Icon(
                         icon,
                         contentDescription = null,
-                        tint = if (isGranted) cs.onTertiaryContainer else cs.onPrimaryContainer,
-                        modifier = Modifier.padding(10.dp),
+                        tint = if (isGranted) cs.onSecondaryContainer else cs.onPrimaryContainer,
+                        modifier = Modifier.size(24.dp),
                     )
                 }
                 Text(
@@ -298,7 +291,7 @@ private fun AdvancedCard(
                     Icon(
                         Icons.Rounded.CheckCircle,
                         contentDescription = "Concedido",
-                        tint = cs.tertiary,
+                        tint = cs.primary,
                         modifier = Modifier.size(22.dp),
                     )
                 }
@@ -315,34 +308,16 @@ private fun AdvancedCard(
                 label = "card_content_$title",
             ) { granted ->
                 if (granted) {
-                    Surface(
-                        shape = RoundedCornerShape(12.dp),
-                        color = cs.tertiaryContainer.copy(alpha = 0.45f),
-                        modifier = Modifier.fillMaxWidth(),
-                    ) {
-                        Row(
-                            modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        ) {
-                            Icon(
-                                Icons.Rounded.CheckCircle,
-                                contentDescription = null,
-                                tint = cs.tertiary,
-                                modifier = Modifier.size(16.dp),
-                            )
-                            Text(
-                                "Todos los permisos concedidos",
-                                style = MaterialTheme.typography.bodySmall,
-                                fontWeight = FontWeight.Medium,
-                                color = cs.onTertiaryContainer,
-                            )
-                        }
-                    }
+                    Text(
+                        "Todo concedido.",
+                        style = MaterialTheme.typography.bodyMedium,
+                        fontWeight = FontWeight.Medium,
+                        color = cs.primary,
+                    )
                 } else {
                     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                        HorizontalDivider()
                         rows.forEach { (label, value) ->
+                            val isActive = value == "Activo" || value == "Activa"
                             Row(
                                 modifier = Modifier.fillMaxWidth(),
                                 horizontalArrangement = Arrangement.SpaceBetween,
@@ -353,14 +328,21 @@ private fun AdvancedCard(
                                     style = MaterialTheme.typography.bodyMedium,
                                     color = cs.onSurfaceVariant,
                                 )
-                                StatusChip(value)
+                                Text(
+                                    value,
+                                    style = MaterialTheme.typography.labelLarge,
+                                    fontWeight = FontWeight.SemiBold,
+                                    color = if (isActive) cs.primary else cs.error,
+                                )
                             }
                         }
                         if (onAction != null) {
-                            HorizontalDivider()
                             Button(
                                 onClick = onAction,
-                                modifier = Modifier.fillMaxWidth(),
+                                shapes = PulseSingleShapes,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(56.dp),
                             ) {
                                 Text(actionLabel)
                             }
