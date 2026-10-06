@@ -21,6 +21,7 @@ import androidx.compose.foundation.layout.BoxWithConstraints
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.WindowInsets
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
@@ -32,17 +33,21 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.rounded.PlayArrow
 import androidx.compose.material.icons.rounded.Refresh
+import androidx.compose.material.icons.rounded.Settings
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.ExperimentalMaterial3ExpressiveApi
 import androidx.compose.material3.FilledTonalIconButton
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.LinearWavyProgressIndicator
 import androidx.compose.material3.MaterialShapes
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.material3.TopAppBar
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.getValue
@@ -90,6 +95,8 @@ import kotlin.math.ln
 
 @Composable
 fun HomeRoute(
+    onOpenHistory: () -> Unit,
+    onOpenSettings: () -> Unit,
     modifier: Modifier = Modifier,
     viewModel: HomeViewModel = viewModel(),
 ) {
@@ -146,6 +153,8 @@ fun HomeRoute(
             viewModel.resetTodayUsage()
             NetFlowMonitorServiceController.resetToday(context)
         },
+        onOpenHistory = onOpenHistory,
+        onOpenSettings = onOpenSettings,
     )
 }
 
@@ -160,28 +169,59 @@ fun HomeScreen(
     onStartMonitoring: () -> Unit,
     onStopMonitoring: () -> Unit,
     onResetToday: () -> Unit,
+    onOpenHistory: () -> Unit,
+    onOpenSettings: () -> Unit,
 ) {
     val showConfirmReset = remember { mutableStateOf(false) }
 
-    Column(modifier = modifier.fillMaxSize()) {
+    Scaffold(
+        modifier = modifier,
+        contentWindowInsets = WindowInsets(0),
+        topBar = {
+            TopAppBar(
+                title = {
+                    Text(
+                        text = "NetFlow",
+                        style = MaterialTheme.typography.titleLarge,
+                        fontWeight = FontWeight.Bold,
+                    )
+                },
+                actions = {
+                    IconButton(onClick = onOpenHistory) {
+                        Icon(ImageVector.vectorResource(R.drawable.ic_history), contentDescription = "Historial")
+                    }
+                    IconButton(onClick = onOpenSettings) {
+                        Icon(Icons.Rounded.Settings, contentDescription = "Ajustes")
+                    }
+                },
+                windowInsets = WindowInsets(0),
+            )
+        },
+    ) { innerPadding ->
         Column(
             modifier = Modifier
-                .weight(1f)
-                .verticalScroll(rememberScrollState()),
+                .fillMaxSize()
+                .padding(innerPadding),
         ) {
-            PulseHero(state = state)
-            NetworkStatusLine(state = state)
-            TodayUsageSection(state = state)
-            Spacer(Modifier.height(24.dp))
-        }
+            Column(
+                modifier = Modifier
+                    .weight(1f)
+                    .verticalScroll(rememberScrollState()),
+            ) {
+                PulseHero(state = state)
+                NetworkStatusLine(state = state)
+                TodayUsageSection(state = state)
+                Spacer(Modifier.height(24.dp))
+            }
 
-        ServiceControlSection(
-            state = state,
-            onStartMonitoring = onStartMonitoring,
-            onStopMonitoring = onStopMonitoring,
-            onResetToday = { showConfirmReset.value = true },
-            modifier = Modifier.padding(start = 24.dp, end = 24.dp, top = 8.dp, bottom = 16.dp),
-        )
+            ServiceControlSection(
+                state = state,
+                onStartMonitoring = onStartMonitoring,
+                onStopMonitoring = onStopMonitoring,
+                onResetToday = { showConfirmReset.value = true },
+                modifier = Modifier.padding(start = 24.dp, end = 24.dp, top = 8.dp, bottom = 16.dp),
+            )
+        }
     }
 
     if (showConfirmReset.value) {

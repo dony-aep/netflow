@@ -4,14 +4,24 @@ import com.donyaep.netflow.data.local.DailyUsageDao
 import com.donyaep.netflow.data.local.toEntity
 import com.donyaep.netflow.data.local.toExternalModel
 import com.donyaep.netflow.data.model.DailyUsage
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.filterNotNull
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.flow.map
+import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.launch
 import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
 interface DailyUsageRepository {
     fun observeTodayUsage(): Flow<DailyUsage>
-    fun observeRecentUsage(limit: Int): Flow<List<DailyUsage>>
+    /** Último año de consumo; `null` solo antes de la primera lectura. */
+    val recentUsage: StateFlow<List<DailyUsage>?>
     suspend fun getTodayUsage(): DailyUsage
     suspend fun recordUsage(
         wifiReceivedDelta: Long,
@@ -33,10 +43,19 @@ class DefaultDailyUsageRepository(
             entity?.toExternalModel() ?: DailyUsage.empty(todayDate())
         }
 
-    override fun observeRecentUsage(limit: Int): Flow<List<DailyUsage>> =
-        dailyUsageDao.observeRecent(limit).map { entities ->
-            entities.map { it.toExternalModel() }
-        }
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+
+    override val recentUsage: StateFlow<List<DailyUsage>?> =
+        dailyUsageDao.observeRecent(RECENT_DAYS)
+            .map { entities -> entities.map { it.toExternalModel() } }
+            .stateIn(scope, SharingStarted.WhileSubscribed(5_000), null)
+
+    init {
+        // Una lectura al arrancar deja el historial en memoria para la primera vez que se
+        // abre. No se mantiene viva: el servicio escribe cada dos segundos y cada escritura
+        // repetiría la consulta.
+        scope.launch { recentUsage.filterNotNull().first() }
+    }
 
     override suspend fun getTodayUsage(): DailyUsage =
         dailyUsageDao.getByDate(todayDate())?.toExternalModel() ?: DailyUsage.empty(todayDate())
@@ -75,4 +94,8 @@ class DefaultDailyUsageRepository(
         dailyUsageDao.sumMobileBytesBetween(startDate, endDate)
 
     private fun todayDate(): String = LocalDate.now().format(DateTimeFormatter.ISO_LOCAL_DATE)
+
+    private companion object {
+        const val RECENT_DAYS = 365
+    }
 }

@@ -9,6 +9,7 @@ import com.donyaep.netflow.data.model.DailyUsage
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.time.LocalDate
@@ -94,8 +95,14 @@ class HistoryViewModel(application: Application) : AndroidViewModel(application)
     val uiState: StateFlow<HistoryUiState> = _uiState.asStateFlow()
 
     init {
+        // El primer estado sale de lo que el repositorio ya tiene en memoria, para que la
+        // pantalla no se dibuje vacía mientras entra deslizando.
+        repository.recentUsage.value?.let { entries ->
+            allEntries = entries
+            refreshUiState()
+        }
         viewModelScope.launch {
-            repository.observeRecentUsage(limit = 365).collect { entries ->
+            repository.recentUsage.filterNotNull().collect { entries ->
                 allEntries = entries
                 refreshUiState()
             }

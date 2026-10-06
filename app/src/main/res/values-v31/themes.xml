@@ -1,0 +1,10 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+
+    <!-- El neutro dinámico queda cerca del fondo que pinta Compose, así el arranque no enseña
+         otro color antes del primer cuadro. -->
+    <style name="Theme.NetFlow" parent="android:Theme.Material.Light.NoActionBar">
+        <item name="android:windowBackground">@android:color/system_neutral1_10</item>
+        <item name="android:windowSplashScreenBackground">@android:color/system_neutral1_10</item>
+    </style>
+</resources>

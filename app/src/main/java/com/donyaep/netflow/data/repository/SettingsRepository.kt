@@ -5,9 +5,17 @@ import com.donyaep.netflow.data.model.AppSettings
 import com.donyaep.netflow.data.model.DataLimitUnit
 import com.donyaep.netflow.data.model.SpeedUnit
 import com.donyaep.netflow.data.model.ThemeMode
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.flow.Flow
+import kotlinx.coroutines.flow.SharingStarted
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.stateIn
 
 interface SettingsRepository {
+    /** Ajustes ya en memoria; `null` solo antes de la primera lectura. */
+    val settings: StateFlow<AppSettings?>
     fun observeSettings(): Flow<AppSettings>
     suspend fun getSettings(): AppSettings
     suspend fun updateThemeMode(themeMode: ThemeMode)
@@ -23,6 +31,11 @@ interface SettingsRepository {
 class DefaultSettingsRepository(
     private val localDataSource: SettingsLocalDataSource,
 ) : SettingsRepository {
+    private val scope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+
+    override val settings: StateFlow<AppSettings?> =
+        localDataSource.settings.stateIn(scope, SharingStarted.Eagerly, null)
+
     override fun observeSettings(): Flow<AppSettings> = localDataSource.settings
 
     override suspend fun getSettings(): AppSettings = localDataSource.getSettings()

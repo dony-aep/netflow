@@ -12,17 +12,20 @@ import com.donyaep.netflow.data.repository.SettingsRepository
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.filterNotNull
 import kotlinx.coroutines.launch
 
 class SettingsViewModel(application: Application) : AndroidViewModel(application) {
     private val repository: SettingsRepository = (application as NetFlowApplication).appContainer.settingsRepository
 
-    private val _uiState = MutableStateFlow(AppSettings())
+    // Parte de los ajustes ya en memoria, para que la pantalla no muestre un cuadro con los
+    // valores por defecto mientras entra deslizando.
+    private val _uiState = MutableStateFlow(repository.settings.value ?: AppSettings())
     val uiState: StateFlow<AppSettings> = _uiState.asStateFlow()
 
     init {
         viewModelScope.launch {
-            repository.observeSettings().collect { settings ->
+            repository.settings.filterNotNull().collect { settings ->
                 _uiState.value = settings
             }
         }
