@@ -1,34 +1,51 @@
 # NetFlow
 
-Aplicacion Android nativa para monitorear en tiempo real el consumo y la velocidad de datos en WiFi y red movil, con notificacion persistente, historial diario y alertas de limite.
+Aplicación Android nativa que mide en tiempo real la velocidad y el consumo de datos en WiFi y red móvil. Mantiene una notificación con la velocidad, guarda un historial diario y avisa al superar el límite de datos.
 
 Desarrollada en **Kotlin** con **Jetpack Compose** y **Material 3 Expressive**.
 
 ## Capturas de pantalla
 
 <p align="center">
-  <img src="docs/screenshot_home.png" alt="Pantalla principal" width="300"/>
+  <img src="docs/screenshots/home-screen.png" width="250" alt="Inicio"/>
+  <img src="docs/screenshots/history-screen.png" width="250" alt="Historial"/>
+  <img src="docs/screenshots/day-detail-screen.png" width="250" alt="Detalle de un día"/>
 </p>
 
-## Caracteristicas principales
+| Inicio | Historial | Detalle de un día |
+|:------:|:---------:|:-----------------:|
+| Velocidad en vivo y consumo de hoy | El mes en un calendario, con el día más alto | Bajada, subida y reparto entre WiFi y móvil |
 
-- Velocidad de red en tiempo real (bajada/subida) en bytes/s o bits/s.
-- Notificacion persistente con actualizacion continua y icono dinamico.
-- Deteccion automatica del tipo de conexion (WiFi o datos moviles).
-- Historial diario de consumo con calendario y resumen por periodo.
-- Limite de datos mensual configurable con ciclo de facturacion y alerta al superar el umbral.
-- Monitoreo en segundo plano con servicio foreground.
-- Inicio automatico tras reinicio del dispositivo.
-- Actualizaciones via GitHub Releases.
-- Interfaz Material 3 Expressive con Dynamic Color y MotionScheme.
-- Tipografia Google Sans / Google Sans Code.
+<p align="center">
+  <img src="docs/screenshots/settings-screen.png" width="250" alt="Ajustes"/>
+  <img src="docs/screenshots/update-screen.png" width="250" alt="Actualizaciones"/>
+</p>
 
-## Stack tecnologico
+| Ajustes | Actualizaciones |
+|:-------:|:---------------:|
+| Tema, unidad de velocidad y límite de datos | Versión instalada y última publicada en GitHub |
 
-| Capa | Tecnologia |
+Las capturas usan datos de demostración.
+
+## Características principales
+
+- Velocidad de bajada y de subida en vivo, en bytes/s o bits/s.
+- Una figura que cambia de forma con la velocidad: casi redonda en reposo, ondulada cuando hay tráfico.
+- Notificación persistente con la velocidad dibujada en el icono. Se puede ocultar en la pantalla de bloqueo.
+- Consumo de hoy repartido entre WiFi y datos móviles.
+- Historial con calendario por mes y resúmenes de 7 días, 30 días y 3 meses.
+- Límite mensual de datos móviles con día de inicio de ciclo y aviso al superarlo.
+- Monitoreo en segundo plano con un servicio en primer plano. Si estaba activo, se retoma al reiniciar el teléfono.
+- Consulta de versiones nuevas en GitHub Releases desde la propia app.
+- Tema claro, oscuro o el del sistema, con Dynamic Color en Android 12 o superior.
+- Tipografía Google Sans y Google Sans Code.
+
+## Stack tecnológico
+
+| Capa | Tecnología |
 |------|-----------|
 | UI | Jetpack Compose + Material 3 Expressive |
-| Navegacion | Navigation Compose |
+| Navegación | Navigation Compose |
 | Estado | StateFlow + ViewModel |
 | Persistencia | Room + DataStore Preferences |
 | Concurrencia | Kotlin Coroutines |
@@ -38,9 +55,9 @@ Desarrollada en **Kotlin** con **Jetpack Compose** y **Material 3 Expressive**.
 
 ## Requisitos
 
-- Minimo: Android 8.0 (API 26).
-- Recomendado: Android 12+ (API 31) para Dynamic Color.
-- Target SDK: Android 15 (API 36).
+- Mínimo: Android 8.0 (API 26).
+- Recomendado: Android 12 (API 31) o superior, para Dynamic Color.
+- Target SDK: API 36 (Android 16).
 
 ## Permisos
 
@@ -48,82 +65,100 @@ Desarrollada en **Kotlin** con **Jetpack Compose** y **Material 3 Expressive**.
 
 | Permiso | Tipo | Motivo |
 |---------|------|--------|
-| `POST_NOTIFICATIONS` (Android 13+) | Requerido | Mostrar velocidad y alertas |
-| `ACCESS_FINE_LOCATION` | Opcional | Obtener SSID de la red WiFi |
-| `ACCESS_BACKGROUND_LOCATION` (Android 10+) | Opcional | Mantener SSID visible en segundo plano |
-| `REQUEST_IGNORE_BATTERY_OPTIMIZATIONS` | Opcional | Reducir cortes del servicio en background |
+| `POST_NOTIFICATIONS` (Android 13+) | Necesario | Mostrar la velocidad y los avisos |
+| `ACCESS_FINE_LOCATION` | Opcional | Leer el nombre de la red WiFi |
+| `ACCESS_BACKGROUND_LOCATION` (Android 10+) | Opcional | Seguir leyendo ese nombre con la app en segundo plano |
+| `REQUEST_IGNORE_BATTERY_OPTIMIZATIONS` | Opcional | Evitar que el sistema corte el servicio |
 
-### Declarados automaticamente
+### Otros permisos declarados
 
-`INTERNET`, `ACCESS_NETWORK_STATE`, `ACCESS_WIFI_STATE`, `ACCESS_COARSE_LOCATION`, `READ_PHONE_STATE`, `FOREGROUND_SERVICE`, `FOREGROUND_SERVICE_DATA_SYNC`, `RECEIVE_BOOT_COMPLETED`, `WAKE_LOCK`
+`INTERNET`, `ACCESS_NETWORK_STATE`, `ACCESS_WIFI_STATE`, `ACCESS_COARSE_LOCATION`, `FOREGROUND_SERVICE`, `FOREGROUND_SERVICE_SPECIAL_USE`, `RECEIVE_BOOT_COMPLETED`
+
+## Privacidad
+
+- El consumo y los ajustes se guardan solo en el teléfono, en Room y DataStore.
+- La app se conecta a internet únicamente al abrir Actualizaciones, y lo hace a la API de GitHub para leer la última versión publicada.
+- La ubicación sirve para leer el nombre de la red WiFi, porque Android no lo entrega sin ese permiso. La app no la guarda ni la envía.
+- No lleva analíticas ni publicidad.
 
 ## Arquitectura
 
 ```
-app/
+app/src/main/java/com/donyaep/netflow/
 ├── core/
-│   ├── monitoring/       # Service, BroadcastReceiver, StateStore
-│   ├── notification/     # NotificationFactory, DynamicSpeedIcon
-│   └── update/           # GitHubUpdateService
+│   ├── monitoring/       # Servicio, contabilidad del tráfico, ciclo de facturación, arranque tras reinicio
+│   ├── notification/     # Notificación e icono de velocidad
+│   └── update/           # Consulta a GitHub Releases
 ├── data/
-│   ├── local/            # Room DB, DAO, DataStore, TrafficStats
-│   ├── model/            # Data classes (AppSettings, DailyUsage, etc.)
-│   └── repository/       # Repository interfaces + implementations
+│   ├── local/            # Room, DataStore, TrafficStats
+│   ├── model/            # AppSettings, DailyUsage, TrafficSnapshot
+│   └── repository/       # Repositorios de ajustes, consumo diario y tráfico
 └── ui/
-    ├── navigation/       # NavHost, Destinations
-    ├── screens/          # Home, History, Settings, Advanced, Updates, About
-    └── theme/            # Color, Shape, Type, Theme (M3 Expressive)
+    ├── components/       # Figura de pulso, reparto WiFi/móvil y filas compartidas
+    ├── navigation/       # NavHost y destinos
+    ├── screens/          # Inicio, Historial, Ajustes, Permisos y batería, Actualizaciones, Acerca de
+    └── theme/            # Color, Shape, Type, Theme
 ```
 
-## Uso rapido
+## Uso rápido
 
 1. Instala la app.
-2. Otorga permiso de notificaciones.
-3. El monitoreo inicia automaticamente.
-4. Si quieres ver el SSID en la notificacion, activa ubicacion y permite ubicacion en segundo plano.
-5. Abre Opciones avanzadas y excluye la app del ahorro de bateria para mayor estabilidad.
+2. Acepta el permiso de notificaciones. El monitoreo empieza al abrir la app.
+3. Para ver el nombre de la red WiFi, entra en Ajustes > Permisos y batería, concede la ubicación y elige «Permitir todo el tiempo».
+4. En esa misma pantalla, excluye la app de la optimización de batería para que el sistema no corte el servicio.
 
-## Solucion de problemas
+## Solución de problemas
 
-### El SSID no aparece en la notificacion
+### El nombre de la red WiFi no aparece
 
-- Verifica que la ubicacion del sistema este activada.
-- Confirma permiso de ubicacion y, para segundo plano, permiso "todo el tiempo".
-- Revisa que no haya restricciones de bateria para la app.
+- Verifica que la ubicación del sistema esté activada.
+- Confirma el permiso de ubicación y, para el segundo plano, la opción «Permitir todo el tiempo».
+- Revisa que la app no tenga restricciones de batería.
 
 ### El servicio se detiene en segundo plano
 
-- Activa la excepcion de optimizacion de bateria.
-- Evita modos agresivos de ahorro de energia del fabricante.
+- Excluye la app de la optimización de batería.
+- Evita los modos agresivos de ahorro de energía del fabricante.
 
 ## Desarrollo
 
 ```bash
 # Compilar debug
-./gradlew assembleDebug
+./gradlew :app:assembleDebug
 
-# Ejecutar tests
-./gradlew test
+# Ejecutar las pruebas unitarias
+./gradlew :app:testDebugUnitTest
 
 # Lint
-./gradlew lint
+./gradlew :app:lintDebug
 ```
+
+La build de depuración se instala como `com.donyaep.netflow.debug`, así que convive en el mismo teléfono con la release.
 
 ## Build de release
 
 ```bash
-./gradlew assembleRelease
+./gradlew :app:assembleRelease
 ```
 
-La APK firmada se genera en `app/build/outputs/apk/release/`.
+La APK se genera en `app/build/outputs/apk/release/`.
 
-Requiere `app/key.properties` con la configuracion de firma (ver documentacion de signing).
+Para firmarla hace falta `app/key.properties`, que no está en el repositorio:
 
-## Instalacion
+```properties
+storeFile=ruta/al/keystore.jks
+storePassword=...
+keyAlias=...
+keyPassword=...
+```
 
-1. Descargar APK desde [GitHub Releases](https://github.com/dony-aep/netflow/releases)
-2. Instalar en el dispositivo
-3. Conceder permisos al abrir la app
+`storeFile` se resuelve desde la carpeta `app/`. Si el archivo falta, Gradle firma la release con la clave de depuración.
+
+## Instalación
+
+1. Descarga la APK desde [GitHub Releases](https://github.com/dony-aep/netflow/releases).
+2. Instálala en el dispositivo.
+3. Concede los permisos al abrir la app.
 
 ## Licencia
 
