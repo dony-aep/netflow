@@ -6,11 +6,14 @@ import android.net.wifi.WifiInfo
 import android.net.wifi.WifiManager
 import android.app.NotificationManager
 import android.app.Service
+import android.content.BroadcastReceiver
 import android.content.pm.PackageManager
 import android.content.Context
 import android.content.Intent
+import android.content.IntentFilter
 import android.os.Build
 import android.os.IBinder
+import android.os.PowerManager
 import android.os.SystemClock
 import androidx.core.content.ContextCompat
 import com.donyaep.netflow.NetFlowApplication
@@ -66,11 +69,33 @@ class NetFlowMonitorService : Service() {
     private val sharedPrefs by lazy { getSharedPreferences("netflow_prefs", Context.MODE_PRIVATE) }
     private var lastDate: String = LocalDate.now().format(DateTimeFormatter.ISO_LOCAL_DATE)
     private var dataLimitAlertCycleKey: String = ""
+    // La escribe el receptor en el hilo principal y la lee el bucle en el suyo.
+    @Volatile
+    private var screenOn = true
+    private var lastNotificationKey: String? = null
+    private val screenReceiver = object : BroadcastReceiver() {
+        override fun onReceive(context: Context, intent: Intent) {
+            screenOn = intent.action == Intent.ACTION_SCREEN_ON
+            // Al encender la pantalla se publica lo que cambió mientras estuvo apagada.
+            // Sin monitoreo en marcha no hay notificación que actualizar.
+            if (screenOn && monitoringJob != null) serviceScope.launch { updateNotification() }
+        }
+    }
     private var lastKnownLimitBytes: Long = -1L
 
     override fun onCreate() {
         super.onCreate()
         NetFlowNotificationFactory.ensureChannel(this)
+        screenOn = (getSystemService(Context.POWER_SERVICE) as PowerManager).isInteractive
+        ContextCompat.registerReceiver(
+            this,
+            screenReceiver,
+            IntentFilter().apply {
+                addAction(Intent.ACTION_SCREEN_ON)
+                addAction(Intent.ACTION_SCREEN_OFF)
+            },
+            ContextCompat.RECEIVER_NOT_EXPORTED,
+        )
         dataLimitAlertCycleKey = sharedPrefs.getString("dataLimitNotifiedCycle", "") ?: ""
         settingsJob = serviceScope.launch {
             settingsRepository.observeSettings().collect { settings ->
@@ -101,6 +126,7 @@ class NetFlowMonitorService : Service() {
     override fun onBind(intent: Intent?): IBinder? = null
 
     override fun onDestroy() {
+        unregisterReceiver(screenReceiver)
         monitoringJob?.cancel()
         settingsJob?.cancel()
         MonitoringStateStore.reset()
@@ -371,10 +397,16 @@ class NetFlowMonitorService : Service() {
     }
 
     private fun updateNotification() {
+        // Con la pantalla apagada nadie ve la notificación; se pone al día al encenderla.
+        if (!screenOn) return
+        val state = MonitoringStateStore.state.value
+        val key = NetFlowNotificationFactory.contentKey(state, currentSettings)
+        if (key == lastNotificationKey) return
+        lastNotificationKey = key
         val notificationManager = getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
         notificationManager.notify(
             NetFlowNotificationFactory.notificationId,
-            NetFlowNotificationFactory.build(this, MonitoringStateStore.state.value, currentSettings),
+            NetFlowNotificationFactory.build(this, state, currentSettings),
         )
     }
 

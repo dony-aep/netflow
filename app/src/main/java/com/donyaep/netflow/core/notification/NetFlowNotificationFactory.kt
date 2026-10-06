@@ -58,15 +58,8 @@ object NetFlowNotificationFactory {
         monitoringState: MonitoringState,
         settings: AppSettings,
     ): android.app.Notification {
-        val useBits = settings.speedUnit == SpeedUnit.BitsPerSecond
-        val title = "Bajada: ${TrafficFormatter.formatSpeed(monitoringState.downloadSpeedBytesPerSecond, useBits)}  Subida: ${TrafficFormatter.formatSpeed(monitoringState.uploadSpeedBytesPerSecond, useBits)}"
-        val splitText = buildString {
-            append(networkLabel(monitoringState))
-            append(" · WiFi ")
-            append(TrafficFormatter.formatBytes(monitoringState.todayWifiTotalBytes))
-            append(" · Móvil ")
-            append(TrafficFormatter.formatBytes(monitoringState.todayMobileTotalBytes))
-        }
+        val title = titleFor(monitoringState, settings)
+        val splitText = textFor(monitoringState)
         val contentIntent = PendingIntent.getActivity(
             context,
             0,
@@ -107,6 +100,23 @@ object NetFlowNotificationFactory {
             .setOnlyAlertOnce(true)
             .setPriority(NotificationCompat.PRIORITY_LOW)
             .build()
+    }
+
+    /** Resume lo que la notificación muestra. Si no cambia, no hace falta volver a publicarla. */
+    fun contentKey(monitoringState: MonitoringState, settings: AppSettings): String =
+        titleFor(monitoringState, settings) + "|" + textFor(monitoringState) + "|" + settings.hideOnLockscreen
+
+    private fun titleFor(monitoringState: MonitoringState, settings: AppSettings): String {
+        val useBits = settings.speedUnit == SpeedUnit.BitsPerSecond
+        return "Bajada: ${TrafficFormatter.formatSpeed(monitoringState.downloadSpeedBytesPerSecond, useBits)}  Subida: ${TrafficFormatter.formatSpeed(monitoringState.uploadSpeedBytesPerSecond, useBits)}"
+    }
+
+    private fun textFor(monitoringState: MonitoringState): String = buildString {
+        append(networkLabel(monitoringState))
+        append(" · WiFi ")
+        append(TrafficFormatter.formatBytes(monitoringState.todayWifiTotalBytes))
+        append(" · Móvil ")
+        append(TrafficFormatter.formatBytes(monitoringState.todayMobileTotalBytes))
     }
 
     fun sendDataLimitAlert(context: Context, settings: AppSettings) {
