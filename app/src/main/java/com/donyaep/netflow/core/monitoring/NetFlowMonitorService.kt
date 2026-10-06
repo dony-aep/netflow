@@ -33,7 +33,9 @@ import java.time.LocalDate
 import java.time.format.DateTimeFormatter
 
 class NetFlowMonitorService : Service() {
-    private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Default)
+    // Un solo hilo: el bucle de muestreo, el colector de ajustes y el reinicio de contadores
+    // comparten campos mutables sin sincronizar y no deben ejecutarse a la vez.
+    private val serviceScope = CoroutineScope(SupervisorJob() + Dispatchers.Default.limitedParallelism(1))
     private val trafficStatsRepository: TrafficStatsRepository by lazy {
         (application as NetFlowApplication).appContainer.trafficStatsRepository
     }
