@@ -382,7 +382,7 @@ class NetFlowMonitorService : Service() {
         if (!currentSettings.dataLimitEnabled) return
         val limitBytes = currentSettings.toLimitBytes()
         if (limitBytes <= 0L) return
-        val cycleStart = getCycleStartDate(currentSettings.billingCycleDay)
+        val cycleStart = billingCycleStart(currentSettings.billingCycleDay)
         val cycleKey = cycleStart.format(DateTimeFormatter.ISO_LOCAL_DATE)
         if (cycleKey == dataLimitAlertCycleKey) return
         val todayStr = LocalDate.now().format(DateTimeFormatter.ISO_LOCAL_DATE)
@@ -400,17 +400,6 @@ class NetFlowMonitorService : Service() {
             DataLimitUnit.GB -> 1_024L * 1_024L * 1_024L
         }
         return (dataLimitValue * mult).toLong()
-    }
-
-    private fun getCycleStartDate(billingCycleDay: Int): LocalDate {
-        val today = LocalDate.now()
-        val safeDay = billingCycleDay.coerceIn(1, today.lengthOfMonth())
-        return if (today.dayOfMonth >= safeDay) {
-            today.withDayOfMonth(safeDay)
-        } else {
-            val prevMonth = today.minusMonths(1)
-            prevMonth.withDayOfMonth(billingCycleDay.coerceAtMost(prevMonth.lengthOfMonth()))
-        }
     }
 
     companion object {
