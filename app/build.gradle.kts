@@ -41,6 +41,10 @@ android {
     }
 
     buildTypes {
+        debug {
+            // Otro identificador para que la build de depuración conviva con la release instalada.
+            applicationIdSuffix = ".debug"
+        }
         release {
             signingConfig = if (keystorePropertiesFile.exists()) {
                 signingConfigs.getByName("release")
