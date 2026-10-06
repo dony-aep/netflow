@@ -13,7 +13,8 @@ import com.donyaep.netflow.data.model.SpeedUnit
 import kotlin.math.max
 
 object DynamicSpeedIconFactory {
-    private const val ICON_SIZE = 256
+    // 24 dp, el tamaño de un icono de barra de estado, son 96 px en la densidad más alta.
+    private const val ICON_SIZE = 96
 
     fun create(
         context: Context,
