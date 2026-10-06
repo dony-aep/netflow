@@ -23,6 +23,7 @@ Monitor de tráfico de red para Android. Kotlin, Jetpack Compose y Material 3 Ex
 - Inyección de dependencias manual en `data/AppContainer.kt`. No añadir Hilt.
 - Room exporta el esquema a `app/schemas/`. Un cambio de esquema sube `version`, añade su migración y commitea el JSON generado.
 - En `NetFlowMonitorService`, el fallback a `WifiManager.connectionInfo` está deprecado a propósito: en muchos dispositivos es lo único que devuelve el SSID real. No quitarlo.
+- El servicio de monitoreo es de tipo `specialUse`. No volver a `dataSync`: desde Android 15 ese tipo se corta a las 6 horas y no puede arrancarse desde `BOOT_COMPLETED`.
 
 ## Commits y changelog
 

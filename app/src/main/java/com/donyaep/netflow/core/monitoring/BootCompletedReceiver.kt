@@ -36,7 +36,12 @@ class BootCompletedReceiver : BroadcastReceiver() {
                         ) == PackageManager.PERMISSION_GRANTED
 
                 if (settings.restoreMonitoringAfterBoot && notificationsAllowed) {
-                    NetFlowMonitorServiceController.start(context.applicationContext)
+                    try {
+                        NetFlowMonitorServiceController.start(context.applicationContext)
+                    } catch (e: IllegalStateException) {
+                        // El sistema puede vetar el arranque en segundo plano. Sin capturarlo,
+                        // la excepción mata el proceso durante el encendido del teléfono.
+                    }
                 }
             } finally {
                 pendingResult.finish()
