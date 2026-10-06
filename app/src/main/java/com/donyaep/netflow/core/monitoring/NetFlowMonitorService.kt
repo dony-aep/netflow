@@ -57,11 +57,7 @@ class NetFlowMonitorService : Service() {
     private var monitoringJob: Job? = null
     private var settingsJob: Job? = null
     private var currentSettings: AppSettings = AppSettings()
-    private val downloadSpeedBuffer = ArrayDeque<Long>()
-    private val uploadSpeedBuffer = ArrayDeque<Long>()
-    private var lastSnapshot: TrafficSnapshot? = null
-    private var lastSampleElapsedRealtime: Long = 0L
-    private var lastNetworkType: NetworkType = NetworkType.None
+    private val accountant = TrafficAccountant(speedBufferSize = SPEED_BUFFER_SIZE)
     private var todayDownloadBytes: Long = 0L
     private var todayUploadBytes: Long = 0L
     private var todayWifiTotalBytes: Long = 0L
@@ -142,15 +138,13 @@ class NetFlowMonitorService : Service() {
             return
         }
 
-        val initialSnapshot = trafficStatsRepository.readSnapshot()
-        lastSnapshot = initialSnapshot
-        lastSampleElapsedRealtime = SystemClock.elapsedRealtime()
-        lastNetworkType = currentNetworkType()
-        val currentWifiSsid = currentWifiSsid(lastNetworkType)
+        val initialNetworkType = currentNetworkType()
+        accountant.start(trafficStatsRepository.readSnapshot(), SystemClock.elapsedRealtime(), initialNetworkType)
+        val currentWifiSsid = currentWifiSsid(initialNetworkType)
         MonitoringStateStore.update {
             it.copy(
                 isRunning = true,
-                networkType = lastNetworkType,
+                networkType = initialNetworkType,
                 wifiSsid = currentWifiSsid,
             )
         }
@@ -195,10 +189,7 @@ class NetFlowMonitorService : Service() {
 
     private suspend fun publishMonitoringState(snapshot: TrafficSnapshot) {
         val nowElapsedRealtime = SystemClock.elapsedRealtime()
-        val elapsedMs = nowElapsedRealtime - lastSampleElapsedRealtime
         val networkType = currentNetworkType()
-        val previousSnapshot = lastSnapshot
-        val networkChanged = networkType != lastNetworkType
 
         val currentDate = LocalDate.now().format(DateTimeFormatter.ISO_LOCAL_DATE)
         if (currentDate != lastDate) {
@@ -208,10 +199,7 @@ class NetFlowMonitorService : Service() {
             todayUploadBytes = newDayUsage.totalSentBytes
             todayWifiTotalBytes = newDayUsage.wifiTotalBytes
             todayMobileTotalBytes = newDayUsage.mobileTotalBytes
-            lastSnapshot = snapshot
-            lastSampleElapsedRealtime = nowElapsedRealtime
-            downloadSpeedBuffer.clear()
-            uploadSpeedBuffer.clear()
+            accountant.rebase(snapshot, nowElapsedRealtime)
             MonitoringStateStore.update {
                 it.copy(
                     todayDownloadBytes = todayDownloadBytes,
@@ -225,72 +213,26 @@ class NetFlowMonitorService : Service() {
             return
         }
         val wifiSsid = currentWifiSsid(networkType)
-        var wifiRxDelta = 0L
-        var wifiTxDelta = 0L
-        var mobileRxDelta = 0L
-        var mobileTxDelta = 0L
+        val sample = accountant.onSample(snapshot, nowElapsedRealtime, networkType)
 
-        var averagedDownloadSpeed = 0L
-        var averagedUploadSpeed = 0L
+        todayDownloadBytes += sample.totalRxDelta
+        todayUploadBytes += sample.totalTxDelta
+        todayWifiTotalBytes += sample.wifiRxDelta + sample.wifiTxDelta
+        todayMobileTotalBytes += sample.mobileRxDelta + sample.mobileTxDelta
 
-        if (previousSnapshot != null && elapsedMs > 100L) {
-            val totalRxDelta = (snapshot.totalRxBytes - previousSnapshot.totalRxBytes).coerceAtLeast(0L)
-            val totalTxDelta = (snapshot.totalTxBytes - previousSnapshot.totalTxBytes).coerceAtLeast(0L)
-
-            // Atribuir deltas según la red activa actual
-            when (networkType) {
-                NetworkType.Wifi -> {
-                    wifiRxDelta = totalRxDelta
-                    wifiTxDelta = totalTxDelta
-                }
-                NetworkType.Mobile -> {
-                    mobileRxDelta = totalRxDelta
-                    mobileTxDelta = totalTxDelta
-                }
-                NetworkType.None -> { /* sin conexión, no atribuir */ }
-            }
-
-            todayDownloadBytes += totalRxDelta
-            todayUploadBytes += totalTxDelta
-            todayWifiTotalBytes += wifiRxDelta + wifiTxDelta
-            todayMobileTotalBytes += mobileRxDelta + mobileTxDelta
-
-            dailyUsageRepository.recordUsage(
-                wifiReceivedDelta = wifiRxDelta,
-                wifiSentDelta = wifiTxDelta,
-                mobileReceivedDelta = mobileRxDelta,
-                mobileSentDelta = mobileTxDelta,
-            )
-            checkDataLimitAlert(mobileRxDelta + mobileTxDelta)
-
-            // Velocidad solo cuando la red es estable (sin cambio y con conexión activa)
-            if (!networkChanged && networkType != NetworkType.None) {
-                val rawDownloadSpeed = (totalRxDelta * 1000L) / elapsedMs
-                val rawUploadSpeed = (totalTxDelta * 1000L) / elapsedMs
-
-                pushBufferedSample(downloadSpeedBuffer, rawDownloadSpeed)
-                pushBufferedSample(uploadSpeedBuffer, rawUploadSpeed)
-
-                averagedDownloadSpeed = downloadSpeedBuffer.averageBytesPerSecond()
-                averagedUploadSpeed = uploadSpeedBuffer.averageBytesPerSecond()
-            } else {
-                downloadSpeedBuffer.clear()
-                uploadSpeedBuffer.clear()
-            }
-        } else {
-            downloadSpeedBuffer.clear()
-            uploadSpeedBuffer.clear()
-        }
-
-        lastSnapshot = snapshot
-        lastSampleElapsedRealtime = nowElapsedRealtime
-        lastNetworkType = networkType
+        dailyUsageRepository.recordUsage(
+            wifiReceivedDelta = sample.wifiRxDelta,
+            wifiSentDelta = sample.wifiTxDelta,
+            mobileReceivedDelta = sample.mobileRxDelta,
+            mobileSentDelta = sample.mobileTxDelta,
+        )
+        checkDataLimitAlert(sample.mobileRxDelta + sample.mobileTxDelta)
 
         MonitoringStateStore.update {
             it.copy(
                 isRunning = true,
-                downloadSpeedBytesPerSecond = averagedDownloadSpeed,
-                uploadSpeedBytesPerSecond = averagedUploadSpeed,
+                downloadSpeedBytesPerSecond = sample.downloadSpeed,
+                uploadSpeedBytesPerSecond = sample.uploadSpeed,
                 networkType = networkType,
                 wifiSsid = wifiSsid,
                 todayDownloadBytes = todayDownloadBytes,
@@ -349,26 +291,8 @@ class NetFlowMonitorService : Service() {
         return wifiManager.connectionInfo?.ssid
     }
 
-    private fun pushBufferedSample(buffer: ArrayDeque<Long>, value: Long) {
-        buffer.addLast(value)
-        if (buffer.size > SPEED_BUFFER_SIZE) {
-            buffer.removeFirst()
-        }
-    }
-
-    private fun ArrayDeque<Long>.averageBytesPerSecond(): Long {
-        if (isEmpty()) {
-            return 0L
-        }
-        return sum() / size
-    }
-
     private fun clearRuntimeState() {
-        downloadSpeedBuffer.clear()
-        uploadSpeedBuffer.clear()
-        lastSnapshot = null
-        lastSampleElapsedRealtime = 0L
-        lastNetworkType = NetworkType.None
+        accountant.clear()
         todayDownloadBytes = 0L
         todayUploadBytes = 0L
         todayWifiTotalBytes = 0L
@@ -381,16 +305,15 @@ class NetFlowMonitorService : Service() {
             dailyUsageRepository.resetTodayUsage()
             clearRuntimeState()
             cycleMobileKey = ""
-            lastSnapshot = trafficStatsRepository.readSnapshot()
-            lastSampleElapsedRealtime = SystemClock.elapsedRealtime()
-            lastNetworkType = currentNetworkType()
+            val networkTypeNow = currentNetworkType()
+            accountant.start(trafficStatsRepository.readSnapshot(), SystemClock.elapsedRealtime(), networkTypeNow)
             MonitoringStateStore.update {
                 it.copy(
                     isRunning = monitoringJob != null,
                     downloadSpeedBytesPerSecond = 0,
                     uploadSpeedBytesPerSecond = 0,
-                    networkType = lastNetworkType,
-                    wifiSsid = currentWifiSsid(lastNetworkType),
+                    networkType = networkTypeNow,
+                    wifiSsid = currentWifiSsid(networkTypeNow),
                     todayDownloadBytes = 0,
                     todayUploadBytes = 0,
                     todayWifiTotalBytes = 0,
