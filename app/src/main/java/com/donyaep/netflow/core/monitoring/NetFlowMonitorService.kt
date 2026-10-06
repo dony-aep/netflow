@@ -69,6 +69,9 @@ class NetFlowMonitorService : Service() {
     private val sharedPrefs by lazy { getSharedPreferences("netflow_prefs", Context.MODE_PRIVATE) }
     private var lastDate: String = LocalDate.now().format(DateTimeFormatter.ISO_LOCAL_DATE)
     private var dataLimitAlertCycleKey: String = ""
+    // Ciclo al que corresponde cycleMobileBytes; vacío obliga a consultar de nuevo.
+    private var cycleMobileKey: String = ""
+    private var cycleMobileBytes: Long = 0L
     // La escribe el receptor en el hilo principal y la lee el bucle en el suyo.
     @Volatile
     private var screenOn = true
@@ -258,7 +261,7 @@ class NetFlowMonitorService : Service() {
                 mobileReceivedDelta = mobileRxDelta,
                 mobileSentDelta = mobileTxDelta,
             )
-            checkDataLimitAlert()
+            checkDataLimitAlert(mobileRxDelta + mobileTxDelta)
 
             // Velocidad solo cuando la red es estable (sin cambio y con conexión activa)
             if (!networkChanged && networkType != NetworkType.None) {
@@ -377,6 +380,7 @@ class NetFlowMonitorService : Service() {
         serviceScope.launch {
             dailyUsageRepository.resetTodayUsage()
             clearRuntimeState()
+            cycleMobileKey = ""
             lastSnapshot = trafficStatsRepository.readSnapshot()
             lastSampleElapsedRealtime = SystemClock.elapsedRealtime()
             lastNetworkType = currentNetworkType()
@@ -410,16 +414,24 @@ class NetFlowMonitorService : Service() {
         )
     }
 
-    private suspend fun checkDataLimitAlert() {
-        if (!currentSettings.dataLimitEnabled) return
-        val limitBytes = currentSettings.toLimitBytes()
-        if (limitBytes <= 0L) return
-        val cycleStart = billingCycleStart(currentSettings.billingCycleDay)
-        val cycleKey = cycleStart.format(DateTimeFormatter.ISO_LOCAL_DATE)
-        if (cycleKey == dataLimitAlertCycleKey) return
-        val todayStr = LocalDate.now().format(DateTimeFormatter.ISO_LOCAL_DATE)
-        val cycleTotalBytes = dailyUsageRepository.getMobileBytesBetween(cycleKey, todayStr)
-        if (cycleTotalBytes < limitBytes) return
+    private suspend fun checkDataLimitAlert(mobileDelta: Long) {
+        val limitBytes = if (currentSettings.dataLimitEnabled) currentSettings.toLimitBytes() else 0L
+        val cycleKey = billingCycleStart(currentSettings.billingCycleDay).format(DateTimeFormatter.ISO_LOCAL_DATE)
+        if (limitBytes <= 0L || cycleKey == dataLimitAlertCycleKey) {
+            // Sin límite, o con la alerta del ciclo ya enviada, no se lleva la cuenta. Al
+            // reactivarse hay que consultar de nuevo, porque se habrán perdido muestras.
+            cycleMobileKey = ""
+            return
+        }
+        if (cycleKey != cycleMobileKey) {
+            // La consulta ya incluye la muestra que se acaba de registrar.
+            val todayStr = LocalDate.now().format(DateTimeFormatter.ISO_LOCAL_DATE)
+            cycleMobileBytes = dailyUsageRepository.getMobileBytesBetween(cycleKey, todayStr)
+            cycleMobileKey = cycleKey
+        } else {
+            cycleMobileBytes += mobileDelta
+        }
+        if (cycleMobileBytes < limitBytes) return
         dataLimitAlertCycleKey = cycleKey
         sharedPrefs.edit().putString("dataLimitNotifiedCycle", cycleKey).apply()
         NetFlowNotificationFactory.sendDataLimitAlert(this, currentSettings)
